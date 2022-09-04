@@ -4,6 +4,7 @@
 using LinearAlgebra, Statistics
 using ForwardDiff, Optim, JuMP, Ipopt, BlackBoxOptim, Roots, NLsolve, LeastSquaresOptim
 using Optim: converged, maximum, maximizer, minimizer, iterations #some extra functions
+using Plots
 
 # Calculating derivatives of functions
 # 1) Analytically (by hand): invaluable, but sometimes tedious and error-prone
