@@ -21,8 +21,9 @@ y = 1-2im
 x*y
 
 # String
-x = 10; y = 20
-"x = $x"
+x = 10
+ y = 20
+"x = $x";
 "x+y = $(x+y)"
 
 # concatenation
@@ -45,6 +46,7 @@ println("word = $word, val = $val")
 
 # Dictionaries
 d = Dict("name" => "Frodo", "age" => 33)
+# Extract values
 d["name"]
 d["age"]
 
@@ -62,6 +64,7 @@ for x in x_values
     println(x*x)
 end
 
+# zip method to iterate through pairs
 countries = ("Japan", "Korea", "China")
 cities = ("Tokyo", "Seoul", "Beijing")
 for (country, city) in zip(countries, cities)

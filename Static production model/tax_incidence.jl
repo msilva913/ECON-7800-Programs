@@ -1,5 +1,8 @@
 
-using Parameters, NLsolve, DataFrames, Optim, Latexify
+using Parameters, NLsolve, DataFrames, Optim
+
+# Finance a given amount of government expenditure using different taxes 
+# Examine effect on labor supply, consumption, and output
 
 Para = @with_kw (
     α = [0.3, 0.4], # prefernce parameters
@@ -16,6 +19,7 @@ function markets(x, para; tax=1)
     q[2] = x[1]
     w = x[2]
     r = x[3]
+
     # set tax rates based on case
     τ_c = zeros(2)
     τ_w, τ_r = 0.0, 0.0

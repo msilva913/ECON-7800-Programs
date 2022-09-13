@@ -1,10 +1,8 @@
 
 using PyPlot
-export @L_str, Axes3D, ColorMap, Figure, LaTeXString, PyPlot, acorr, annotate, arrow, art3D, autoscale, autumn, axhline, axhspan, axis, axvline, axvspan, bar, bar3D, barbs, barh, bone, box, boxplot, broken_barh, cla, clabel, clf, clim, cohere, colorbar, colors, contour, contour3D, contourf, contourf3D, cool, copper, csd, delaxes, disconnect, draw, errorbar, eventplot, figaspect, figimage, figlegend, figtext, figure, fill_between, fill_betweenx, findobj, flag, gca, gcf, gci, get_cmap, get_cmaps, get_current_fig_manager, get_figlabels, get_fignums, get_plot_commands, getindex, ginput, gray, grid, hexbin, hist, hist2D, hlines, hold, hot, hsv, imread, imsave, imshow, ioff, ion, ishold, jet, keys, latexstring, legend, locator_params, loglog, margins, matplotlib, matshow, mesh, minorticks_off, minorticks_on, over, pause, pcolor, pcolormesh, pie, pink, plot, plot3D, plot_date, plot_surface, plot_trisurf, plot_wireframe, plotfile, plt, polar, prism, psd, pygui, quiver, quiverkey, rc, rc_context, rcdefaults, register_cmap, rgrids, savefig, sca, scatter, scatter3D, sci, semilogx, semilogy, set_cmap, setindex!, setp, show, specgram, spectral, spring, spy, stackplot, stem, step, streamplot, subplot, subplot2grid, subplot_tool, subplots, subplots_adjust, summer, suptitle, surf, table, text, text2D, text3D, thetagrids, tick_params, ticklabel_format, tight_layout, title, tricontour, tricontourf, tripcolor, triplot, twinx, twiny, using3D, vlines, waitforbuttonpress, winter, withfig, xkcd, xlabel, xlim, xscale, xticks, ylabel, ylim, yscale, yticks, zlabel, zlim, zscale, zticks
-using LaTeXStrings, KernelDensity
-using Parameters, CSV, Random, QuantEcon
-using NLsolve, Dierckx, Distributions, ArgParse
-using LinearAlgebra, QuadGK, Roots, Optim, Interpolations
+using Parameters, Random
+using NLsolve, Optim
+
 
 @with_kw mutable struct Para
 
@@ -42,8 +40,11 @@ function markets(x, para)
     out = similar(x)
 
     out[1] = α[1]*Ybarn/p[1]+ G - (β_1/w)^(β_1)*((1-β_1)/r)^(1-β_1)*q[1]*(α[1]*Ybarn/p[1]+G) 
+
     out[2] = 1.0 - (β_2/w)^β_2*((1-β_2)/r)^(1-β_2)q[2]
+
     out[3] = (β_1/w)*q[1]*(α[1]*Ybarn/p[1]+G) + (β_2/w)*q[2]*α[2]*Ybarn/p[2] + (1-α[1]-α[2])/wn*Ybarn - Tbar
+
     out[4] = (q[1]*G - tauc[1]/(1.0+tauc[1])*α[1]*Ybarn- tauc[2]/(1.0+tauc[2])*α[2]*Ybarn-
             tauw*w*(Tbar-(1.0-α[1]-α[2])/wn*Ybarn)-taur*r*Kbar)
     

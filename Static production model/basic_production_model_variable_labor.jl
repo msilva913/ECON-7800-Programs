@@ -10,7 +10,6 @@ Para = @with_kw (
     Tbar = 30.0
 )
 
-#u = (L_1, K_1) -> (L_1^β_1*K_1^(1-β_1))^α*((Lbar-L_1)^β_2*(Kbar-K_1)^(1-β_2))^(1-α)
 
 function markets(x, para)
     @unpack α_1, α_2, β_1, β_2, Kbar, Tbar = para
@@ -34,10 +33,13 @@ end
     # Market equations
 
 para = Para()
+# loss function
+
 f(x) = markets(x, para)[1]
 x0 = [0.5; 0.5; 0.5]
 res = nlsolve(f, x0)
 @show out, p, w, r = markets(res.zero, para)
+
 # Calculate other economic variables
 @unpack α_1, α_2, β_1, β_2, Kbar, Tbar = para
 Ybar = w*Tbar + r*Kbar

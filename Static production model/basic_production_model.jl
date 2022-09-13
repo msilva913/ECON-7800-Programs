@@ -8,7 +8,8 @@ using Parameters, Optim, DataFrames
     Kbar::Float64 = 10
     Lbar::Float64 = 20
 
-    # define closure (anonymous function)
+    # define anonymous function
+    # utility function to be maximized
     u = (L_1, K_1) -> (L_1^β_1*K_1^(1-β_1))^α*((Lbar-L_1)^β_2*(Kbar-K_1)^(1-β_2))^(1-α)
 end
 
@@ -17,7 +18,6 @@ para = Para()
 # define negative of utility function
 f(x) = -u(x[1], x[2])
 x = [5.0, 5.0]
-#result = optimize(f, x)
 # LBFGS method with auto-differentiation
 result = optimize(f, x, LBFGS(), autodiff=:forward)
 sol = result.minimizer

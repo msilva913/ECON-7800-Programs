@@ -2,9 +2,9 @@
 # https://julia.quantecon.org/more_julia/optimization_solver_packages.html
 
 using LinearAlgebra, Statistics
-using ForwardDiff, Optim, JuMP, Ipopt, BlackBoxOptim, Roots, NLsolve, LeastSquaresOptim
+using ForwardDiff, Optim, Roots, NLsolve, LeastSquaresOptim
 using Optim: converged, maximum, maximizer, minimizer, iterations #some extra functions
-using Plots
+using PyPlot
 
 # Calculating derivatives of functions
 # 1) Analytically (by hand): invaluable, but sometimes tedious and error-prone
@@ -25,7 +25,7 @@ g(rand(5)) # gradient at a random point
 #Optim.jl works well for unconstrained or box-bounded optimization of univariate and multivariate functions
 f(x) = x^2
 x_range = -2:0.1:1.0
-plot(x_range, f.(x_range))
+plt.plot(x_range, f.(x_range))
 
 # returns various fields holding output
 result = optimize(x ->x^2, -2.0, 1.0)
@@ -66,7 +66,7 @@ println("minimum = $(results.minimum) with argmin = $(results.minimizer) in "*
 
 f(x) = sin(4(x-1/4)) + x +x^20 - 1
 x_vals = 0.0:0.05:1.0
-plot(x_vals, f.(x_vals))
+plt.plot(x_vals, f.(x_vals))
 
 # Find root 
 @show sol = fzero(f, 0, 1)
@@ -105,3 +105,5 @@ function rosenbrock(x)
 end
 sol = LeastSquaresOptim.optimize(rosenbrock, zeros(2), Dogleg())
 @show sol.minimizer
+# check convergence
+sol.converged

@@ -1,12 +1,8 @@
 
 # Static general equilibrium model with intermediate goods #
-using PyPlot
-using LaTeXStrings, KernelDensity
-using Parameters, CSV, Random, QuantEcon
-using NLsolve, Dierckx, Distributions, ArgParse
-using LinearAlgebra, QuadGK, Roots, Optim, Interpolations
-using DataFrames
-using Latexify
+using Parameters, LinearAlgebra
+using NLsolve, DataFrames
+
 Para = @with_kw (
     Kbar = 10.0,
     Tbar = 30.0,
