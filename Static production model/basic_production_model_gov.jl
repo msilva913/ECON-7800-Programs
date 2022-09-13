@@ -53,7 +53,7 @@ function markets(x, para)
     l = (1-α[1]-α[2])*Ybarn/wn
     u = X_1^(α[1])*X_2^(α[2])l^(1-α[1]-α[2])
 
-    return out, q, w, r, p, wn, rn, Ybarn, X_1, X_2, l, u, G
+    return out, q, w, r, p, wn, rn, taur, Ybarn, X_1, X_2, l, u, G
 end
     # Market equations
 
@@ -61,7 +61,7 @@ para = Para(Kbar=10)
 f(x) = markets(x, para)[1]
 x0 = [0.5; 0.5; 0.5; 0.5]
 res = nlsolve(f, x0)
- out, q, w, r, p, wn, rn, Ybarn, X_1, X_2, l, u, G = markets(res.zero, para)
+ out, q, w, r, p, wn, rn, taur, Ybarn, X_1, X_2, l, u, G = markets(res.zero, para)
 @show X_1, G, q[1]
 @show X_2, q[2]
 @show u
