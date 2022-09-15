@@ -50,12 +50,14 @@ function markets(x, para; tax=1)
 
    # market clearing conditions
    out = similar(x)
+   # goods markets (1 and 2)
    out[1] = α[1]*Ybarn/p[1] + G - (β[1]/w)^(β[1])*((1-β[1])/r)^(1-β[1])*q[1]*(α[1]*Ybarn/p[1]+G)
    out[2] = 1.0 - (β[2]/w)^(β[2])*((1-β[2])/r)^(1-β[2])*q[2]
 
    # labor market conditions
    out[3] = β[1]/w*q[1]*(α[1]*Ybarn/p[1]+G) + β[2]/w*q[2]*α[2]*Ybarn/p[2] + (1-α[1]-α[2])*Ybarn/wn - Tbar
 
+   # government budget constraint
    out[4] = q[1]*G -sum((τ_c./(1.0 .+ τ_c).* α))*Ybarn - τ_w*w*(Tbar - (1-α[1]-α[2])/wn*Ybarn) - τ_r*r*Kbar
 
     return out, q, p, w, r, τ_c, τ_w, τ_r, wn, rn, Ybarn
