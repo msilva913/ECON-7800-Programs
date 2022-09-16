@@ -1,7 +1,7 @@
 
 # Julia Essentials
 
-using BenchmarkTools
+using BenchmarkTools, LinearAlgebra
 # Primitive data types
 x = true
 typeof(x)

@@ -63,7 +63,7 @@ function markets(x, para)
 end
 
 
-summ = zeros(2, 9)
+summ = zeros(2, 11)
 for (i, Kbar) in enumerate([10.0, 8.0])
     # set parameters
     para = Para(Kbar=Kbar)
@@ -72,13 +72,13 @@ for (i, Kbar) in enumerate([10.0, 8.0])
     x0 = [0.2, 0]
     res = nlsolve(f, x0)
     out, w, r, τ_c, τ_w, τ_r, q, p, Y, X, K, L, U = markets(res.zero, para)
-    summ[i, :] = [w, r, q[1], q[2], τ_c[1], τ_c[2], p[1], p[2], U]
+    summ[i, :] = [w, r, q[1], q[2], τ_c[1], τ_c[2], p[1], p[2], Y[1], Y[2], U]
 end
     
 
 summ_dat = DataFrames.DataFrame(summ, :auto)
 summ_dat = round.(summ_dat, digits=2)
-rename!(summ_dat, [:w, :r, :q_1, :q_2, :τ_1, :τ_2, :p_1, :p_2, :U])
+rename!(summ_dat, [:w, :r, :q_1, :q_2, :τ_1, :τ_2, :p_1, :p_2, :Y_1, :Y_2, :U])
 print(summ_dat)
 
 #summ_dat_tex = latexify(summ_dat, env=:table, latex=true)
