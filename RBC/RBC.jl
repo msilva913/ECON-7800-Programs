@@ -1,5 +1,5 @@
 
-using PyPlot, PlotlyJS
+using PyPlot
 using BenchmarkTools
 using LaTeXStrings
 using Parameters, CSV, Statistics, Random, QuantEcon
@@ -165,7 +165,7 @@ function solve_model_time_iter(l, para::Para; tol=1e-8, max_iter=1000, verbose=t
         #@printf(" %.2f", (mean(c)))
         err = maximum(abs.(l_new-l)/max.(abs.(l), 1e-10))
         if verbose && iter % print_skip == 0
-            print(" Error at iteration $iter is $err.")
+            print("Error at iteration $iter is $err. \n")
         end
         iter += 1
         l .= l_new
@@ -405,11 +405,6 @@ ax[3].legend()
 display(fig)
 PyPlot.savefig("rbc_irf.pdf")
 
-" Moments from simulated data "
-# convert to Pandas DataFrame
-# simul_dat = Pandas.DataFrame(simul_dat)
-# mom = moments(simul_dat)
-      
 
 
 
