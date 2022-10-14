@@ -1,8 +1,8 @@
 
-using PyPlot, PlotlyJS
+using PyPlot
 using BenchmarkTools
 using LaTeXStrings
-using Parameters, CSV, Statistics, Random, QuantEcon
+using Parameters, CSV, Random, QuantEcon
 using NLsolve
 using LinearAlgebra, Roots, LinearInterpolations, Interpolations, Dierckx
 using Printf
@@ -65,8 +65,6 @@ end
     # numerical parameter
     k_l::Float64 = 5.0
     k_u::Float64 = 15.0
-    sig::Float64 = 1e-6
-    max_iter::Int64 = 1000
     NK::Int64 = 50
     NS::Int64 = 9
     T::Float64 = 1e5
@@ -165,7 +163,7 @@ function solve_model_time_iter(l, para::Para; tol=1e-8, max_iter=1000, verbose=t
         #@printf(" %.2f", (mean(c)))
         err = maximum(abs.(l_new-l)/max.(abs.(l), 1e-10))
         if verbose && iter % print_skip == 0
-            print(" Error at iteration $iter is $err.")
+            print(" Error at iteration $iter is $err.\n")
         end
         iter += 1
         l .= l_new

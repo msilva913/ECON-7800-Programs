@@ -106,6 +106,7 @@ map(x -> sin(1/x), randn(3))
 f(x, a=1) = exp(cos(a*x))
 f(π)
 
+
 # Broadcasting
 
 # Can be done via loop
@@ -169,7 +170,7 @@ g()
 # Local scope also works with named tuples
 x = 0.1
 y = 2
-(x=x,  y=y)
+b = (x=x,  y=y)
 
 # Similar with broadcasting
 f(x) = x^2
