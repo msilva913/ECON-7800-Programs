@@ -67,7 +67,6 @@ end
     k_u::Float64 = 15.0
     NK::Int64 = 50
     NS::Int64 = 9
-    T::Float64 = 1e5
     mc::T1 = rouwenhorst(NS, ρ_x, σ_x, 0)
     P::T2 = mc.p
     A::T3 = exp.(mc.state_values)
@@ -163,7 +162,7 @@ function solve_model_time_iter(l, para::Para; tol=1e-8, max_iter=1000, verbose=t
         #@printf(" %.2f", (mean(c)))
         err = maximum(abs.(l_new-l)/max.(abs.(l), 1e-10))
         if verbose && iter % print_skip == 0
-            print(" Error at iteration $iter is $err.\n")
+            print("Error at iteration $iter is $err. \n")
         end
         iter += 1
         l .= l_new
@@ -403,11 +402,6 @@ ax[3].legend()
 display(fig)
 PyPlot.savefig("rbc_irf.pdf")
 
-" Moments from simulated data "
-# convert to Pandas DataFrame
-# simul_dat = Pandas.DataFrame(simul_dat)
-# mom = moments(simul_dat)
-      
 
 
 
