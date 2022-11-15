@@ -2,7 +2,7 @@
 using PyPlot
 using BenchmarkTools
 using LaTeXStrings
-using Parameters, CSV, Statistics, Random, QuantEcon
+using Parameters, CSV, Random, QuantEcon
 using NLsolve
 using LinearAlgebra, Roots, LinearInterpolations, Interpolations, Dierckx
 using Printf
@@ -59,21 +59,19 @@ end
     β::Float64 = 0.99
     δ::Float64 = 0.025
     θ::Float64 = 1.82
+    # Shocks
     ρ_x::Float64 = 0.974
     σ_x::Float64 = 0.009
 
     # numerical parameter
-    k_l::Float64 = 5.0
-    k_u::Float64 = 15.0
-    sig::Float64 = 1e-6
-    max_iter::Int64 = 1000
-    NK::Int64 = 50
-    NS::Int64 = 9
-    T::Float64 = 1e5
-    mc::T1 = rouwenhorst(NS, ρ_x, σ_x, 0)
-    P::T2 = mc.p
-    A::T3 = exp.(mc.state_values)
-    k_grid::T4 = range(k_l, stop=k_u, length =NK)
+    k_l::Float64 = 5.0 # lower bound for capital
+    k_u::Float64 = 15.0 # upper bound for capital
+    NK::Int64 = 50 # number of gridpoints for capital
+    NS::Int64 = 9 # number of elements of Markov chain for productivity
+    mc::T1 = rouwenhorst(NS, ρ_x, σ_x, 0) # Markov chain object
+    P::T2 = mc.p # Transition matrix
+    A::T3 = exp.(mc.state_values) # Levels of productivity
+    k_grid::T4 = range(k_l, stop=k_u, length =NK) # grid of capital
 end
 
 function update_params!(self, cal)
@@ -105,7 +103,7 @@ function RHS_fun_cons(l_pol::Function, para::Para)
             #c = min(c, y)
             # update capital
             k_p = (1-δ)*k + y - c
-            for z_hat in 1:NS
+            for z_hat in 1:NS #possible future technology (determined by Markov chain)
                 # update labor supply via interpolation
                 l_p = l_pol(k_p, z_hat)
                 # update consumption
@@ -118,6 +116,7 @@ function RHS_fun_cons(l_pol::Function, para::Para)
         end
     end
     RHS = (β.*RHS)
+    # Calculates right-hand side of Euler for given (k, z), where k may be off the grid
     rhs_fun(k, z) = LinearInterpolation(k_grid, RHS[:, z], extrapolation_bc=Line())(k)
     return rhs_fun
 end
@@ -190,7 +189,7 @@ function solve_model_time_iter(l, para::Para; tol=1e-8, max_iter=1000, verbose=t
     end
 
     inv = y - c
-    w = (1-α).*y./l
+    w = (1-α).*y./l # you can also write w = @. (1-α)*y/l
     R = α.*y./k_grid
     l_pol(k, z) = LinearInterpolation(k_grid, l[:, z], extrapolation_bc=Line())(k)
     return l, l_pol, c, y, inv, w, R
@@ -224,7 +223,7 @@ function simulate_series(l_mat::Array, para::Para, burn_in=200, capT=10_000)
         k[t+1] = (1-δ)*k[t] + y[t] - c[t]
     end
 
-    k = k[1:(end-1)]
+    k = k[1:(end-1)] #pop!(k)
     i = y - c
     w = (1-α).*y./l
     R = α.*y./k
@@ -280,8 +279,8 @@ function impulse_response(l_mat, para, k_init; irf_length=40, scale=1.0)
         return out
     end
 
-    out_imp = impulse(z)
-    out_bas = impulse(z_bas)
+    out_imp = impulse(z) # collect values under impulse
+    out_bas = impulse(z_bas) # collect baseline values (no shock occurs)
 
     irf_res = similar(out_imp)
     @. irf_res = 100*log(out_imp/out_bas)
@@ -323,7 +322,7 @@ update_params!(para, cal)
 @unpack NK, NS, A, k_grid, α = para
 
 # Initialize labor supply
-l = ones(NK, NS)*0.5
+l = ones(NK, NS)*steady.l
 
 l_mat, l_pol, c_pol, y_pol, inv_pol, w_pol, R_pol = solve_model_time_iter(l, para, verbose=true)
 #@btime solve_model_time_iter($l, $para)
