@@ -1,11 +1,11 @@
 
 using PyPlot
-using LaTeXStrings, KernelDensity
+using LaTeXStrings
 using Parameters, CSV, Random, QuantEcon
-using NLsolve, Dierckx, Distributions, ArgParse
-using LinearAlgebra, QuadGK, Roots, Optim, LinearInterpolations
+using NLsolve
+using LinearAlgebra, Roots, Optim, LinearInterpolations
 using BenchmarkTools
-using DataFrames, KernelDensity
+using DataFrames
 using Printf
 """
     hist(x, binranges)

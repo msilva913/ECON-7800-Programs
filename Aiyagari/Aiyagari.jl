@@ -1,10 +1,10 @@
 using PyPlot
-using LaTeXStrings, KernelDensity
+using LaTeXStrings
 using Parameters, CSV, Random, QuantEcon
-using NLsolve, Dierckx, Distributions, ArgParse
-using LinearAlgebra, QuadGK, Roots, Optim, LinearInterpolations
+using NLsolve, Dierckx
+using LinearAlgebra, Roots, Optim, LinearInterpolations
 using BenchmarkTools
-using DataFrames, KernelDensity
+using DataFrames
 using Printf
 
 include("Aiyagari_functions.jl")
@@ -23,6 +23,7 @@ ax.plot(a[ind], asset_probs[ind], label="asset distribution")
 ax.fill_between(a[ind], asset_probs[ind], 0.0, alpha=0.2)
 ax.legend()
 tight_layout()
+plt.savefig("asset_distribution")
 display(fig)
 
 
@@ -37,6 +38,7 @@ ax[2].set_title("Savings policy")
 ax[1].legend()
 ax[2].legend()
 tight_layout()
+plt.savefig("policies.pdf")
 display(fig)
 
 #r, w, phi, asset_probs, C, K, CV_C, CV_K = main(para)
