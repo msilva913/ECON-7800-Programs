@@ -1,11 +1,9 @@
 
 using PyPlot
-using LaTeXStrings, KernelDensity
 using Parameters, CSV, Random, QuantEcon
-using NLsolve, Dierckx, Distributions, ArgParse
-using LinearAlgebra, QuadGK, Roots, Optim, LinearInterpolations
+using LinearAlgebra, QuadGK, LinearInterpolations
 using BenchmarkTools
-using DataFrames, KernelDensity
+using DataFrames
 using Printf
 """
     hist(x, binranges)
@@ -56,7 +54,7 @@ end
     P::T2 = mc.p
     y::Vector{Float64} = exp.(mc.state_values)
     @assert R* β < 1
-    a::T3 = grid_Cons_Grow(NA, -b, grid_max, 0.02)
+    a::T3 = grid_cons_grow(NA, -b, grid_max, 0.02)
 end
 
 """
@@ -72,7 +70,7 @@ function update_params!(self)
     self.P = self.mc.p
     self.y = exp.(self.mc.state_values)
     @assert self.R* β < 1
-    self.a = grid_Cons_Grow(NA, -b, grid_max, 0.02)
+    self.a = grid_cons_grow(NA, -b, grid_max, 0.02)
     nothing
 end
 
