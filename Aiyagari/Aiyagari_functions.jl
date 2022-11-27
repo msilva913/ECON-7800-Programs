@@ -5,6 +5,7 @@ using LinearAlgebra, QuadGK, LinearInterpolations
 using BenchmarkTools
 using DataFrames
 using Printf
+
 """
     hist(x, binranges)
 Map values to histogram bins
