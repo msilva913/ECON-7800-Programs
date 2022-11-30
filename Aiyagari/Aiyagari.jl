@@ -1,8 +1,13 @@
 using PyPlot
+<<<<<<< HEAD
 using LaTeXStrings
 using Parameters, CSV, Random, QuantEcon
 using NLsolve, Dierckx
 using LinearAlgebra, Roots, Optim, LinearInterpolations
+=======
+using Parameters, CSV, Random, QuantEcon
+using LinearAlgebra, LinearInterpolations
+>>>>>>> 6c74576fc64480f68e55b33b5f5d1b0dc951b5cd
 using BenchmarkTools
 using DataFrames
 using Printf
@@ -22,8 +27,13 @@ fig, ax = subplots(ncols=1, figsize=(6, 6))
 ax.plot(a[ind], asset_probs[ind], label="asset distribution")
 ax.fill_between(a[ind], asset_probs[ind], 0.0, alpha=0.2)
 ax.legend()
+<<<<<<< HEAD
 tight_layout()
 plt.savefig("asset_distribution")
+=======
+plt.savefig("asset_distribution.pdf")
+tight_layout()
+>>>>>>> 6c74576fc64480f68e55b33b5f5d1b0dc951b5cd
 display(fig)
 
 
@@ -37,8 +47,13 @@ ax[2].set_title("Savings policy")
     end
 ax[1].legend()
 ax[2].legend()
+<<<<<<< HEAD
 tight_layout()
 plt.savefig("policies.pdf")
+=======
+plt.savefig("policies.pdf")
+tight_layout()
+>>>>>>> 6c74576fc64480f68e55b33b5f5d1b0dc951b5cd
 display(fig)
 
 #r, w, phi, asset_probs, C, K, CV_C, CV_K = main(para)

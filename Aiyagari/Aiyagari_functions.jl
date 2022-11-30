@@ -1,5 +1,6 @@
 
 using PyPlot
+<<<<<<< HEAD
 using LaTeXStrings
 using Parameters, CSV, Random, QuantEcon
 using NLsolve
@@ -7,6 +8,14 @@ using LinearAlgebra, Roots, Optim, LinearInterpolations
 using BenchmarkTools
 using DataFrames
 using Printf
+=======
+using Parameters, CSV, Random, QuantEcon
+using LinearAlgebra, QuadGK, LinearInterpolations
+using BenchmarkTools
+using DataFrames
+using Printf
+
+>>>>>>> 6c74576fc64480f68e55b33b5f5d1b0dc951b5cd
 """
     hist(x, binranges)
 Map values to histogram bins
