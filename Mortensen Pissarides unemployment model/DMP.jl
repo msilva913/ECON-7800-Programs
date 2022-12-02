@@ -4,8 +4,8 @@ using Plots
 using BenchmarkTools
 using LaTeXStrings
 using Parameters, CSV, Statistics, Random, QuantEcon
-using NLsolve, Distributions
-using LinearAlgebra, QuadGK, Roots, Optim, LinearInterpolations, Interpolations
+using Distributions
+using LinearAlgebra, Roots, Optim, LinearInterpolations, Interpolations
 using Dierckx
 using Printf
 using DataFrames
