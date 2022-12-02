@@ -27,7 +27,7 @@ function markets(x, para)
     out[1] = 1.0/p[1] - (β_1/w)^(β_1)*((1-β_1)/r)^(1-β_1) 
     out[2] = 1.0/p[2] - (β_2/w)^(β_2)*((1-β_2)/r)^(1-β_2) 
 
-    # Market clearing condition for labor
+    # Market clearing condition for capital
     out[3] = (β_1/w)*α*Ybar+β_2/w*(1-α)*Ybar - Lbar
 
     return out, p, w, r
