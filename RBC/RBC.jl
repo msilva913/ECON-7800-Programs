@@ -331,14 +331,16 @@ l_mat, l_pol, c_pol, y_pol, inv_pol, w_pol, R_pol = solve_model_time_iter(l, par
 # Plot policies
 fig, ax = subplots(ncols=3, figsize=(16, 4))
 for (i, policy) in enumerate([l_mat, c_pol, inv_pol])
-    ax[i].plot(policy[:, 1], label="low productivity", alpha=0.6)
-    ax[i].plot(policy[:, 9], label="high productivity", alpha=0.6)
+    ax[i].plot(k_grid, policy[:, 1], label="low productivity", alpha=0.6)
+    ax[i].plot(k_grid, policy[:, 9], label="high productivity", alpha=0.6)
     ax[i].set_xlabel(L"k")
+    ax[i].grid()
     ax[i].legend()
 end
 ax[1].set_title("Labor policy")
 ax[2].set_title("Consumption policy")
 ax[3].set_title("Investment policy")
+plt.tight_layout()
 display(fig)
 plt.savefig("Policies.pdf")
 
