@@ -355,7 +355,7 @@ simul = simulate_series(l_mat, para)
 
 " Log deviations from stationary mean "
 #out = [100*log.(getfield(simul, x)./mean(getfield(simul,x))) for x in keys(steady)]
-fields = [:y, :c, :i, :w, :l]
+fields = [:y, :c, :i, :w, :R, :l, :lab_prod]
 out = reduce(hcat, [100 .*log.(getfield(simul, x)./mean(getfield(simul,x))) for x in fields])
 #l, c, k, y, i, w, R, lab_prod = columns(out)
 #simul_dat = DataFrames.DataFrame(l=l, c=c, k=k, y=y, i=i, w=w, R=R, lab_prod=lab_prod)
@@ -364,6 +364,7 @@ DataFrames.rename!(simul_dat, fields)
 
 # Moments 
 cycle = mapcols(col -> hamilton_filter(col, h=8), simul_dat)
+fields_mom = [:y, :c, :i, :l, :w, :R]
 #select!(cycle, fields)
 # Extract 
 mom_mod = moments(cycle, :y, [:y], var_names=fields)
@@ -379,21 +380,24 @@ res_norm = log10.(abs.(res))
 " Simulated data"
 fig, ax = subplots(1, 3, figsize=(20, 5))
 t = 250:1000
-ax[1].plot(t, c[t], label="c")
-ax[1].plot(t, l[t], label="l")
-ax[1].plot(t, i[t], label="i")
-ax[1].plot(t, y[t], label="y")
+ax[1].plot(t, simul_dat.c[t], label="c")
+ax[1].plot(t, simul_dat.l[t], label="l")
+ax[1].plot(t, simul_dat.i[t], label="i")
+ax[1].plot(t, simul_dat.y[t], label="y")
 ax[1].set_title("Consumption, investment, output, and labor supply")
+ax[1].set_ylabel("%Δ")
 ax[1].legend()
 
-ax[2].plot(t, w[t], label="w")
-ax[2].plot(t, R[t], label="R")
+ax[2].plot(t, simul_dat.w[t], label="w")
+ax[2].plot(t, simul_dat.R[t], label="R")
 ax[2].set_title("Wage and rental rate of capital")
+ax[1].set_ylabel("%Δ")
 ax[2].legend()
 
-ax[3].plot(t, η_x[t], label="x")
-ax[3].plot(t, lab_prod[t], label="labor productivity")
+ax[3].plot(t, 100*η_x[t], label="x")
+ax[3].plot(t, simul_dat.lab_prod[t], label="labor productivity")
 ax[3].set_title("Total factor and labor productivity")
+ax[1].set_ylabel("%Δ")
 ax[3].legend()
 plt.tight_layout()
 display(fig)
