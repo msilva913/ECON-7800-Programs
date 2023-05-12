@@ -8,6 +8,10 @@ using LinearAlgebra, Roots, LinearInterpolations, Interpolations, Dierckx
 using Printf
 using DataFrames
 #include("time_series_fun.jl")
+cd(@__DIR__)
+parent_dir = dirname(@__DIR__)
+cd(parent_dir)
+include("time_series_fun.jl")
 
 columns(M) = [view(M, :, i) for i in 1:size(M, 2)]
 
@@ -237,7 +241,7 @@ end
     impulse_response(l_mat, para, k_init; irf_length=40, scale=1.0)
 Calculate impulse response to productivity shock 
 """
-function impulse_response(l_mat, para, k_init; irf_length=40, scale=1.0)
+function impulse_response(l_mat::Matrix{Float64}, para, k_init; irf_length=40, scale=1.0)
 
     @unpack ρ_x, σ_x, P, mc, A, α, θ, δ, k_grid = para
 
@@ -270,7 +274,8 @@ function impulse_response(l_mat, para, k_init; irf_length=40, scale=1.0)
             k[t+1] = (1-δ)*k[t] + y[t] - c[t]
         end
 
-        k = k[1:(end-1)]
+        #k = k[1:(end-1)]
+        pop!(k)
         i = y - c
         w = (1-α).*y./l
         R = α.*y./k
@@ -283,7 +288,7 @@ function impulse_response(l_mat, para, k_init; irf_length=40, scale=1.0)
     out_bas = impulse(z_bas) # collect baseline values (no shock occurs)
 
     irf_res = similar(out_imp)
-    @. irf_res = 100*log(out_imp/out_bas)
+    @. irf_res .= 100*log(out_imp/out_bas)
     #out = [log.(x./mean(getfield(simul, field))) for (x, field) in
     #zip([c, k[1:(end-1)], l, i, w, R, y, lab_prod], [:c, :k, :l, :i, :w, :R, :y, :lab_prod])]
     c, k, l, i, w, R, y, lab_prod = columns(irf_res) 
@@ -349,9 +354,21 @@ simul = simulate_series(l_mat, para)
 @unpack c, k, l, i, w, R, y, lab_prod, η_x, z_indices = simul
 
 " Log deviations from stationary mean "
-out = [log.(getfield(simul, x)./mean(getfield(simul,x))) for x in keys(steady)]
-l, c, k, y, i, w, R, lab_prod = out
-simul_dat = DataFrames.DataFrame(l=l, c=c, k=k, y=y, i=i, w=w, R=R, lab_prod=lab_prod)
+#out = [100*log.(getfield(simul, x)./mean(getfield(simul,x))) for x in keys(steady)]
+fields = [:y, :c, :i, :w, :l]
+out = reduce(hcat, [100 .*log.(getfield(simul, x)./mean(getfield(simul,x))) for x in fields])
+#l, c, k, y, i, w, R, lab_prod = columns(out)
+#simul_dat = DataFrames.DataFrame(l=l, c=c, k=k, y=y, i=i, w=w, R=R, lab_prod=lab_prod)
+simul_dat = DataFrames.DataFrame(out, :auto)
+DataFrames.rename!(simul_dat, fields)
+
+# Moments 
+cycle = mapcols(col -> hamilton_filter(col, h=8), simul_dat)
+#select!(cycle, fields)
+# Extract 
+mom_mod = moments(cycle, :y, [:y], var_names=fields)
+print(mom_mod)
+
 
 " Residuals "
 res = residual(l_pol, simul, para)
@@ -359,6 +376,7 @@ res_norm = log10.(abs.(res))
 @show mean(res_norm), maximum(res_norm)
 
 
+" Simulated data"
 fig, ax = subplots(1, 3, figsize=(20, 5))
 t = 250:1000
 ax[1].plot(t, c[t], label="c")
@@ -377,6 +395,7 @@ ax[3].plot(t, η_x[t], label="x")
 ax[3].plot(t, lab_prod[t], label="labor productivity")
 ax[3].set_title("Total factor and labor productivity")
 ax[3].legend()
+plt.tight_layout()
 display(fig)
 PyPlot.savefig("simulations.pdf")
 
@@ -392,17 +411,21 @@ ax[1].plot(irf.i, label="i")
 ax[1].plot(irf.l, label="l")
 ax[1].plot(irf.y, label="y")
 ax[1].set_title("Consumption, investmnt, output, and labor supply")
+ax[1].set_ylabel("%Δ")
 ax[1].legend()
 
 ax[2].plot(irf.w, label="w")
 ax[2].plot(irf.R, label="R")
 ax[2].set_title("Wage and rental rate of capital")
+ax[1].set_ylabel("%Δ")
 ax[2].legend()
 
 ax[3].plot(irf.η_x, label="x")
 ax[3].plot(irf.lab_prod, label="Labor productivity")
 ax[3].set_title("Total factor and labor productivity")
 ax[3].legend()
+ax[1].set_ylabel("%Δ")
+plt.tight_layout()
 display(fig)
 PyPlot.savefig("rbc_irf.pdf")
 
