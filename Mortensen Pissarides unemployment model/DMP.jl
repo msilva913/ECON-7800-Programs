@@ -3,13 +3,13 @@ using PyPlot
 using Plots
 using BenchmarkTools
 using LaTeXStrings
-using Parameters, CSV, Statistics, Random, QuantEcon
+using Parameters, CSV, Random, QuantEcon
 using Distributions
 using LinearAlgebra, Roots, Optim, LinearInterpolations, Interpolations
 using Dierckx
-using Printf
+using Printf, PrettyPrint
 using DataFrames
-#include("time_series_fun.jl")
+include("time_series_fun.jl")
 
 #job finding probability
 function jf(θ, η_L)
@@ -84,7 +84,11 @@ function steady_state(para)
     # Average hiring cost/ expected value of a filled job
     E = k/q
 
-    SteadyState = (E=E, θ=θ, q=q, f=f, u=u, w=w, v=v)
+    J = x-w + (1-s)*k/q
+    M = (1-u)*J
+    Y = (1-u)*x
+
+    SteadyState = (E=E, θ=θ, q=q, f=f, u=u, w=w, v=v, M=M, Y=Y)
     return SteadyState
 end
 
@@ -223,7 +227,7 @@ function simulate_series(E_mat, para, burn_in=200, capT=10000)
     x = exp.(x)
 
     u = ones(capT+1)*0.05
-    vars = ones(capT, 7)
+    vars = ones(capT, 8)
     f, θ, v, w, M, Y, E = columns(vars)
     
     for t in 1:capT
@@ -237,8 +241,9 @@ function simulate_series(E_mat, para, burn_in=200, capT=10000)
     # remove burn-in
     out = [θ f v w u x M Y][(burn_in+1):end, :]
     θ, f, v, w, u, x, M, Y = columns(out)
+    labor_share = w./x
 
-    Simulation = (θ=θ, f=f, v=v, w=w, u=u, x=x, M=M, Y=Y)
+    Simulation = (θ=θ, f=f, v=v, w=w, u=u, x=x, M=M, Y=Y, labor_share=labor_share)
     return Simulation
 end
 
@@ -274,9 +279,9 @@ function impulse_response(E_mat, para; u_init=0.07, irf_length=60, scale=1.0)
         end
         # remove last element of u
         pop!(u)
-      
+        labor_share = w./x_series
 
-        out = [θ f v w u x_series M Y]
+        out = [θ f v w u x_series M Y labor_share]
         return out
     end
 
@@ -285,8 +290,8 @@ function impulse_response(E_mat, para; u_init=0.07, irf_length=60, scale=1.0)
 
     irf_res = similar(out_imp)
     @. irf_res = 100*log(out_imp/out_bas)
-    θ, f, v, w, u, x, M, Y = columns(irf_res)
-    irf = (θ=θ, f=f, v=v, w=w, u=u, x=x, M=M, Y=Y)
+    θ, f, v, w, u, x, M, Y, labor_share = columns(irf_res)
+    irf = (θ=θ, f=f, v=v, w=w, u=u, x=x, M=M, Y=Y, labor_share=labor_share)
     return irf
 end
 
@@ -296,6 +301,8 @@ cal = calibrate(stdx=0.015)
 @unpack k, α_L, z, s, η_L, β, ρ_x, stdx = cal
 
 ss = steady_state(cal)
+# Stock market cap
+ss.M/ss.Y 
 
 # form struct using calibrated parameters
 para = Para(k=k, α_L=α_L, z=z, s=s, η_L=η_L, β=β, ρ_x=ρ_x, stdx=stdx)
@@ -311,14 +318,23 @@ E_mat, E_pol, X, q, f, v, w = solve_model_time_iter(E_mat, para)
 # Simulate model
 simul = simulate_series(E_mat, para)
 
-
+fields = [:x, :u, :θ, :Y, :M, :labor_share]
 # Log deviations from stationary mean
-out = [100 .*log.(getfield(simul, x)./mean(getfield(simul,x))) for x in [:θ, :f, :v, :w, :u, :x]]
-out = reduce(hcat, out)
-θ_sim, f_sim, v_sim, w_sim, u_sim, x_sim = columns(out)
+out = reduce(hcat, [100 .*log.(getfield(simul, x)./mean(getfield(simul,x))) for x in fields])
 
-# DataFrame of log deviations
-#simul_dat = DataFrames.DataFrame(θ=θ_sim, f=f_sim, v=v_sim, w=w_sim, u=u_sim, x=x_sim)
+# Create time series object
+df = time_series_object(out, fields);
+
+# convert to quarterly
+df_q = collapse(df, eoq(df.index), fun=mean);
+#cycle = mapcols(col -> hamilton_filter(col, h=8), DataFrames.DataFrame(df_q.values,:auto))
+cycle = mapcols(col -> hp_filter(col, 10^5)[1], DataFrames.DataFrame(df_q.values,:auto))
+
+DataFrames.rename!(cycle, fields)
+
+#Extract moments
+mom_mod = moments(cycle, :x, fields, var_names=fields)
+pprint(mom_mod)
 
 
 
@@ -356,8 +372,9 @@ fig, ax = plt.subplots(1, 3, figsize=(20, 5))
     
     ax[3].plot(irf.x, label="x")
     ax[3].plot(irf.w, label="w")
+    ax[3].plot(irf.labor_share, label="labor_share")
     ax[3].legend(loc="best")
-    ax[3].set_title("Productivity shock and wages")
+    ax[3].set_title("Productivity shock, wages, and the labor share")
     tight_layout()
     display(fig)
     PyPlot.savefig("irfs.pdf")

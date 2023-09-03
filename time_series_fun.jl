@@ -1,7 +1,4 @@
 
-
-using PyPlot
-using LaTeXStrings, KernelDensity
 using Parameters, CSV, StatsBase, Statistics, Random
 using DataFrames
 using ShiftedArrays
@@ -28,12 +25,12 @@ function moments(dat, var; lags =2, verbose=true)
     mom = [names(dat) sd RSD corrs ac]
     mom = DataFrames.DataFrame(mom, :auto)
     #mom = convert(DataFrames.DataFrame, mom)
-    rename!(mom, ["Variable", "SD", "RSD", "corrs", "Cor(x, x_{-1})", "Cor(x, x_{-2})"])
+    DataFrames.rename!(mom, ["Variable", "SD", "RSD", "corrs", "Cor(x, x_{-1})", "Cor(x, x_{-2})"])
     Table(mom)
     if verbose
         mom[!, 2:end] = round.(mom[!, 2:end], sigdigits=3)
     end
-    mom[!, :Variable] = [:SR, :Y, :L, :C, :TI]
+    mom[!, :Variable] = names(dat)
     return mom
 end
 

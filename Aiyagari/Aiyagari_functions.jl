@@ -1,21 +1,11 @@
 
 using PyPlot
-<<<<<<< HEAD
-using LaTeXStrings
-using Parameters, CSV, Random, QuantEcon
-using NLsolve
-using LinearAlgebra, Roots, Optim, LinearInterpolations
-using BenchmarkTools
-using DataFrames
-using Printf
-=======
 using Parameters, CSV, Random, QuantEcon
 using LinearAlgebra, QuadGK, LinearInterpolations
 using BenchmarkTools
 using DataFrames
 using Printf
 
->>>>>>> 6c74576fc64480f68e55b33b5f5d1b0dc951b5cd
 """
     hist(x, binranges)
 Map values to histogram bins
@@ -229,6 +219,7 @@ function update_dist(phi, ab_pol, wei, para)
     phi_new = zero(phi)
     for ia in 1:NA
         for is in 1:NS
+            # lower gridpoint on savings
             a_p = ab_pol[ia, is]
             for is_p in 1:NS
                 phi_new[a_p, is_p] += (1-wei[ia, is])*P[is, is_p]*phi[ia, is]
@@ -325,7 +316,7 @@ function general_equilibrium(para; T=100_000)
         para_new.r = r 
         para_new.w = w
         update_params!(para_new)
-        # solve HH problem
+        # solve HH problem (partial equilibrium)
         a_pol, c_pol = solve_model_time_iter(a_pol, para_new, verbose=false, omega=0.5)
         
         a_pol = max.(a_pol, -b+1e-10)
