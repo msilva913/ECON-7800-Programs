@@ -1,4 +1,5 @@
 using PyPlot
+using LinearAlgebra
 
 cd(@__DIR__)
 
