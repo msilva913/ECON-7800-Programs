@@ -17,7 +17,7 @@ println("At t=2, the employment mass is ", π_2)
 
 function simulate_markov(P::Matrix, π_0::Array, T=50)
     # Store distributions over time
-    π_array = zeros(T, 2)
+    π_array = zeros(T, length(π_0))
     #Initialize
     π_array[1, :] = π_0
     # Update

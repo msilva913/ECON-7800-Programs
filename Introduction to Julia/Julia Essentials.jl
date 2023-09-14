@@ -23,7 +23,7 @@ x*y
 # String
 x = 10
  y = 20
-"x = $x";
+"x = $x"
 "x+y = $(x+y)"
 
 # concatenation
@@ -59,6 +59,7 @@ end
 keys(d) # iterator
 collect(keys(d))
 
+# Looping without indices
 x_values = 1:5
 for x in x_values
     println(x*x)
@@ -72,7 +73,12 @@ for (country, city) in zip(countries, cities)
 end
 
 # Comprehensions
+# set up row, column combinations
 [i+j for i in 1:3, j in 4:6]
+
+# enumerate entries
+[(i,j) for i in 1:3, j in 1:3]
+
 
 [i + j + k for i in 1:3, j in 4:6, k in 7:9]
 
@@ -90,11 +96,12 @@ f_x = f.(xs)
 
 # Comparisons
 x = 1
-x == 2
+x == 2 # test equality
 x != 3
 1 + 1e-8 ≈ 1
 
 true && false
+true || false
 
 
 # User-defined functions
@@ -112,6 +119,7 @@ f(π)
 x_vec = [2.0, 4.0, 6.0, 8.0]
 y_vec = similar(x_vec)
 
+# Apply sin function in each element of x
 for (i, x) in enumerate(x_vec)
     y_vec[i] = sin(x)
 end
@@ -224,6 +232,12 @@ f(x) = x^2
 h = multiplyit(2.0, f)
 h(2)
 
+# Recall
+P = [0.965 0.035; 0.45 0.55]
+P^2
+pi = eigvecs(P')[:, 2]
+pi = pi/sum(pi)
+############################################################
 # Exercises
 # 1)
 x_vals = 1:500

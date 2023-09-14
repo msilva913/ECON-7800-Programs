@@ -24,11 +24,13 @@ g(rand(5)) # gradient at a random point
 # Optimization 
 #Optim.jl works well for unconstrained or box-bounded optimization of univariate and multivariate functions
 f(x) = x^2
-x_range = -2:0.1:1.0
-plt.plot(x_range, f.(x_range))
+x_range = -2:0.1:2.0
+fig, ax = plt.subplots()
+ax.plot(x_range, f.(x_range))
+display(fig)
 
 # returns various fields holding output
-result = optimize(x ->x^2, -2.0, 1.0)
+result = optimize(x ->x^2, -2.0, 2.0)
 converged(result) || error("Failed to converge in $(iterations(result)) iterations")
 
 # can use maximize function instead
@@ -60,13 +62,13 @@ results = optimize(f, g!, x_iv, LBFGS())
 println("minimum = $(results.minimum) with argmin = $(results.minimizer) in "*
 "$(results.iterations) iterations")
 
-# See also  BlackBoxOptim.jl for global deriative-free optimization and JuMP
-
 # System of equations and least LeastSquares 
 
 f(x) = sin(4(x-1/4)) + x +x^20 - 1
 x_vals = 0.0:0.05:1.0
-plt.plot(x_vals, f.(x_vals))
+fig, ax = plt.subplots()
+ax.plot(x_vals, f.(x_vals))
+display(fig)
 
 # Find root 
 @show sol = fzero(f, 0, 1)
@@ -103,6 +105,7 @@ using LeastSquaresOptim
 function rosenbrock(x)
     [1 - x[1], 100 * (x[2]-x[1]^2)]
 end
+
 sol = LeastSquaresOptim.optimize(rosenbrock, zeros(2), Dogleg())
 @show sol.minimizer
 # check convergence
