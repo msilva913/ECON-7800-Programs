@@ -50,6 +50,7 @@ function markets(x, para; tax=1)
 
    # market clearing conditions
    out = similar(x)
+
    # goods markets (1 and 2)
    out[1] = α[1]*Ybarn/p[1] + G - (β[1]/w)^(β[1])*((1-β[1])/r)^(1-β[1])*q[1]*(α[1]*Ybarn/p[1]+G)
    out[2] = 1.0 - (β[2]/w)^(β[2])*((1-β[2])/r)^(1-β[2])*q[2]
@@ -67,15 +68,20 @@ end
 para = Para()
 x0 = [0.25; 0.25; 0.25; 0.25]
 summ = zeros(6, 11)
+
+# Loop over tax regimes and compute equilibria
 for tax in 1:6
     f(x) = markets(x, para, tax=tax)[1]
     res = nlsolve(f, x0)
+    # update starting point
+    x0 = res.zero
     @show out, q, p, w, r, τ_c, τ_w, τ_r, wn, rn, Ybarn = markets(res.zero, para, tax=tax)
     # Calculate other economic variables
     @unpack α, β, G, Tbar, Kbar = para
     Ybarn = wn*Tbar + rn*Kbar
     X = @. α*Ybarn/p
     Y = similar(X)
+
     Y[1] = X[1] + G
     Y[2] = X[2]
     leis = (1-sum(α))*Ybarn/wn
@@ -86,7 +92,7 @@ for tax in 1:6
     # Utility
     U = X[1]^(α[1])*X[2]^(α[2])*leis^(1-sum(α))
 
-    # organize output
+    # organize output: each tax regime in separate row
     summ[tax, :] = [τ_c[1], τ_c[2], τ_w, τ_r, w, r, q[2], X[1], X[2], leis, U]
 end
 

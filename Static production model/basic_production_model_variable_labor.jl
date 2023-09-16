@@ -26,6 +26,7 @@ function markets(x, para)
 
     out[1] = 1.0/p[1] - (β_1/w)^(β_1)*((1-β_1)/r)^(1-β_1) 
     out[2] = 1.0/p[2] - (β_2/w)^(β_2)*((1-β_2)/r)^(1-β_2) 
+    # labor market equilibrium changes with variable labor
     out[3] = β_1*α_1*Ybar/w + β_2*α_2*Ybar/w + (1.0-α_1-α_2)*Ybar/w - Tbar
 
     return out, p, w, r

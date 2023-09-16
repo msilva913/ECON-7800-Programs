@@ -18,6 +18,7 @@ para = Para()
 # define negative of utility function
 f(x) = -u(x[1], x[2])
 x = [5.0, 5.0]
+
 # LBFGS method with auto-differentiation
 result = optimize(f, x, LBFGS(), autodiff=:forward)
 sol = result.minimizer

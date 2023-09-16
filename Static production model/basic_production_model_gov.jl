@@ -28,7 +28,7 @@ function markets(x, para)
     q[2] = x[1]
     w = x[2]
     r = x[3]
-    # One tax adjusts to clear markets
+    # Assume capital income tax adjusts to clear market
     taur = x[4]
 
     # Consumer prices and total income
@@ -65,6 +65,5 @@ res = nlsolve(f, x0)
 @show X_1, G, q[1]
 @show X_2, q[2]
 @show u
-# Calculate other economic variables
-
+println("Capital income tax rate is ", 100*taur, "%")
 
