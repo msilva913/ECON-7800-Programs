@@ -52,7 +52,7 @@ function markets(x, para; tax=1)
    out = similar(x)
 
    # goods markets (1 and 2)
-   out[1] = α[1]*Ybarn/p[1] + G - (β[1]/w)^(β[1])*((1-β[1])/r)^(1-β[1])*q[1]*(α[1]*Ybarn/p[1]+G)
+   out[1] = 1.0 - (β[1]/w)^(β[1])*((1-β[1])/r)^(1-β[1])*q[1]
    out[2] = 1.0 - (β[2]/w)^(β[2])*((1-β[2])/r)^(1-β[2])*q[2]
 
    # labor market conditions
