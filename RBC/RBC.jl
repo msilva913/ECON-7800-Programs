@@ -314,6 +314,37 @@ function residual(l_pol, simul, para::Para; burn_in=200)
     loss = 1.0 .- simul.c .* rhs
     return loss[burn_in:end]
 end  
+
+function impulse_response_plot(irf; fig_title="rbc_irf.pdf")
+    fig, ax = subplots(1, 3, figsize=(20, 5))
+    ax[1].plot(irf.c, label="c")
+    ax[1].plot(irf.i, label="i")
+    ax[1].plot(irf.l, label="l")
+    ax[1].plot(irf.y, label="y")
+    ax[1].set_title("Consumption, investment, output, and labor supply")
+    ax[1].set_ylabel("%Δ")
+    ax[1].grid()
+    ax[1].legend()
+
+    ax[2].plot(irf.w, label="w")
+    ax[2].plot(irf.R, label="R")
+    ax[2].set_title("Wage and rental rate of capital")
+    ax[2].set_ylabel("%Δ")
+    ax[2].grid()
+    ax[2].legend()
+
+    ax[3].plot(irf.η_x, label="x")
+    ax[3].plot(irf.lab_prod, label="Labor productivity")
+    ax[3].set_title("Total factor and labor productivity")
+    ax[3].legend()
+    ax[3].set_ylabel("%Δ")
+    ax[3].grid()
+    ax[3].legend()
+    plt.tight_layout()
+    display(fig)
+    PyPlot.savefig(fig_title)
+end
+
    
 
 para = Para()
@@ -404,35 +435,16 @@ display(fig)
 PyPlot.savefig("simulations.pdf")
 
 
-
 " Impulse responses "
 k_1 = mean(simul.k)
 irf = impulse_response(l_mat, para, k_1, irf_length=60)
+impulse_response_plot(irf)
 
-fig, ax = subplots(1, 3, figsize=(20, 5))
-ax[1].plot(irf.c, label="c")
-ax[1].plot(irf.i, label="i")
-ax[1].plot(irf.l, label="l")
-ax[1].plot(irf.y, label="y")
-ax[1].set_title("Consumption, investmnt, output, and labor supply")
-ax[1].set_ylabel("%Δ")
-ax[1].legend()
+# no persistence in productivity
+para_np = Para(ρ_x = 0.0)
+# re-solve model
+l = ones(NK, NS)*steady.l
+l_mat, l_pol, c_pol, y_pol, inv_pol, w_pol, R_pol = solve_model_time_iter(l, para_np, verbose=true)
 
-ax[2].plot(irf.w, label="w")
-ax[2].plot(irf.R, label="R")
-ax[2].set_title("Wage and rental rate of capital")
-ax[1].set_ylabel("%Δ")
-ax[2].legend()
-
-ax[3].plot(irf.η_x, label="x")
-ax[3].plot(irf.lab_prod, label="Labor productivity")
-ax[3].set_title("Total factor and labor productivity")
-ax[3].legend()
-ax[1].set_ylabel("%Δ")
-plt.tight_layout()
-display(fig)
-PyPlot.savefig("rbc_irf.pdf")
-
-
-
-
+irf_np = impulse_response(l_mat, para_np, k_1, irf_length=10)
+impulse_response_plot(irf_np, fig_title="rbc_irf_np.pdf")
