@@ -13,30 +13,6 @@ using GLM
 
 columns(M) = (view(M, :, i) for i in 1:size(M, 2))
 
-function moments(dat, var; lags =2, verbose=true)
-    #sd = DataFrames.colwise(std, dat)
-    sd = map(std, eachcol(dat))
-    RSD = sd./std(dat[!, var])
-
-    corrs = [cor(dat[:, i], dat[:, var]) for i in 1:ncol(dat)]
-    ac = zeros(ncol(dat), lags)
-
-    for k in 2:(lags+1)
-        ac[:, k-1] = [autocor(dat[:, i])[k] for i in 1:ncol(dat)]
-    end
-
-    mom = [names(dat) sd RSD corrs ac]
-    mom = DataFrames.DataFrame(mom, :auto)
-    #mom = convert(DataFrames.DataFrame, mom)
-    rename!(mom, ["Variable", "SD", "RSD", "corrs", "Cor(x, x_{-1})", "Cor(x, x_{-2})"])
-    Table(mom)
-    if verbose
-        mom[!, 2:end] = round.(mom[!, 2:end], sigdigits=3)
-    end
-    mom[!, :Variable] = [:SR, :Y, :L, :C, :TI]
-    return mom
-end
-
 function moments(dat, var_RSD, var_corr; lags =2, 
     var_names=[:SR, :Y, :L, :C, :TI], verbose=true)
     #sd = DataFrames.colwise(std, dat)
