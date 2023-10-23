@@ -96,9 +96,8 @@ function RHS_fun_cons(l_pol::Function, para::Para)
     # consumption given state and labo
     
     RHS = zeros(NK, NS)
-    @inbounds Threads.@threads for (i, k) in collect(enumerate(k_grid))
-    #for (i, k) in enumerate(k_grid)
-        for z in 1:NS
+    @inbounds Threads.@threads for z in 1:NS
+        for (i, k) in collect(enumerate(k_grid))
             # labor policy
             l_i = l_pol(k, z)
             # consumption and output
@@ -115,11 +114,10 @@ function RHS_fun_cons(l_pol::Function, para::Para)
                 c_p = (1-l_p)/θ*(1-α)*y_p/l_p
                 #c_p = min(c_p, y_p)
                 # future marginal utility
-                RHS[i, z] += P[z, z_hat]*((1/c_p)*(α*y_p/k_p+1-δ))
+                RHS[i, z] +=β*P[z, z_hat]*((1/c_p)*(α*y_p/k_p+1-δ))
             end
         end
     end
-    RHS = (β.*RHS)
     # Calculates right-hand side of Euler for given (k, z), where k may be off the grid
     rhs_fun(k, z) = LinearInterpolation(k_grid, RHS[:, z], extrapolation_bc=Line())(k)
     return rhs_fun
@@ -130,15 +128,24 @@ end
 Calculate discrepancy between consumption implied by intratemporal condition and
 consumption implied by Euler equation
 """
-function labor_supply_loss(l_i, k, z, RHS_fun,  para::Para)
+# function labor_supply_loss(l_i, k, z, RHS_fun,  para::Para)
 
-    @unpack A, α, θ = para
-    # optimal consumption
+#     @unpack A, α, θ = para
+#     # optimal consumption
+#     y = A[z]*k^α*l_i^(1-α)
+#     c = (1-l_i)/θ*(1-α)*y/l_i
+#     #c = min(c, y)
+#     error =  1/c - RHS_fun(k, z)
+#     return error
+# end
+
+function labor_supply_update(l_i, k, z, RHS_fun, para)
+    @unpack A, α, θ, = para
+    # optimal consumption 
     y = A[z]*k^α*l_i^(1-α)
-    c = (1-l_i)/θ*(1-α)*y/l_i
-    #c = min(c, y)
-    error =  1/c - RHS_fun(k, z)
-    return error
+    c = 1/RHS_fun(k, z)
+    l_new = (1-l_i)/θ*(1-α)*y/c
+    return l_new
 end
 
 """
@@ -152,16 +159,17 @@ function solve_model_time_iter(l, para::Para; tol=1e-8, max_iter=1000, verbose=t
     # Initial consumption level
     l_new = similar(l)
 
-    err = 1
+    err = 1.0
     iter = 1
     while (iter < max_iter) && (err > tol)
         # interpolate given labor grid l
         l_pol(k, z) = LinearInterpolation(k_grid, @view(l[:, z]), extrapolation_bc=Line())(k)
         RHS_fun = RHS_fun_cons(l_pol, para)
-        @inbounds Threads.@threads for (i, k) in collect(enumerate(k_grid))
-            for z in 1:NS
+        for z in 1:NS
+            for (i, k) in collect(enumerate(k_grid))
                 # solve for labor supply
-                l_i = find_zero(l_i -> labor_supply_loss(l_i, k, z, RHS_fun, para), (1e-10, 0.99), Bisection() )
+                #l_i = find_zero(l_i -> labor_supply_loss(l_i, k, z, RHS_fun, para), (1e-10, 0.99), Bisection() )
+                l_i = labor_supply_update(l[i, z], k, z, RHS_fun, para)
                 l_new[i, z] = l_i
             end
         end
@@ -172,7 +180,6 @@ function solve_model_time_iter(l, para::Para; tol=1e-8, max_iter=1000, verbose=t
         end
         iter += 1
         l .= l_new
-    
     end
 
     # Get convergence level
@@ -180,9 +187,9 @@ function solve_model_time_iter(l, para::Para; tol=1e-8, max_iter=1000, verbose=t
         print("Failed to converge!")
     end
 
-    if verbose && (iter < max_iter)
-        print("Converged in $iter iterations")
-    end
+    # if verbose && (iter < max_iter)
+    #     print("Converged in $iter iterations")
+    # end
     y = similar(l)
     c = similar(l)
     for (i, k) in enumerate(k_grid)
@@ -335,7 +342,8 @@ function impulse_response_plot(irf; fig_title="rbc_irf.pdf")
 
     ax[3].plot(irf.η_x, label="x")
     ax[3].plot(irf.lab_prod, label="Labor productivity")
-    ax[3].set_title("Total factor and labor productivity")
+    ax[3].plot(irf.k, label="Capital stock")
+    ax[3].set_title("Total factor and labor productivity and capital stock")
     ax[3].legend()
     ax[3].set_ylabel("%Δ")
     ax[3].grid()
@@ -361,7 +369,7 @@ update_params!(para, cal)
 l = ones(NK, NS)*steady.l
 
 l_mat, l_pol, c_pol, y_pol, inv_pol, w_pol, R_pol = solve_model_time_iter(l, para, verbose=true)
-#@btime solve_model_time_iter($l, $para)
+@btime solve_model_time_iter($l, $para, tol=1e-6)
 
 
 # Plot policies
@@ -448,3 +456,5 @@ l_mat, l_pol, c_pol, y_pol, inv_pol, w_pol, R_pol = solve_model_time_iter(l, par
 
 irf_np = impulse_response(l_mat, para_np, k_1, irf_length=10)
 impulse_response_plot(irf_np, fig_title="rbc_irf_np.pdf")
+
+
