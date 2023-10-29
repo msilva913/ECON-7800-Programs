@@ -165,7 +165,7 @@ function solve_model_time_iter(l, para::Para; tol=1e-8, max_iter=1000, verbose=t
         # interpolate given labor grid l
         l_pol(k, z) = LinearInterpolation(k_grid, @view(l[:, z]), extrapolation_bc=Line())(k)
         RHS_fun = RHS_fun_cons(l_pol, para)
-        for z in 1:NS
+        @inbounds Threads.@threads for z in 1:NS
             for (i, k) in collect(enumerate(k_grid))
                 # solve for labor supply
                 #l_i = find_zero(l_i -> labor_supply_loss(l_i, k, z, RHS_fun, para), (1e-10, 0.99), Bisection() )
