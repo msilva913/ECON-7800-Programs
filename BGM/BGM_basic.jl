@@ -51,7 +51,7 @@ end
 Calculate steady state of model
 """
 function steady_state(para)
-    @unpack α, β, δ, χ, ψ, ε, σ, Z, f_E = para
+    @unpack β, δ, χ, ψ, ε, σ, Z, f_E = para
 
     r = (1-β)/β
     Γ = ε/(ε-1)
@@ -107,7 +107,7 @@ end
 Compute the conditional expectation at each state (K,N,z) for a given labor supply policy
 """
 function update_variables(C, N, Z, para)
-    @unpack  α, β, δ, χ, ψ, ε, σ, f_E, A = para
+    @unpack  β, δ, χ, ψ, ε, σ, f_E, A = para
     @unpack N_l, N_u = para
     Γ = ε/(ε-1)
     ρ = N^(1/(ε-1))
@@ -134,7 +134,7 @@ function interpolating_function(mat::Array, para)
 end
 
 function RHS_EE_cons(C_pol, para::Para)
-    @unpack  α, β, δ, χ, ψ, ε, σ, Z, f_E = para
+    @unpack  β, δ, χ, ψ, ε, σ, Z, f_E = para
     @unpack P, NN, NS, N_grid, A = para
 
     # consumption given state and labor
@@ -185,7 +185,7 @@ Solve RBC model (find correct policies) given initial guess of labor supply poli
 function solve_model_time_iter(C_mat::Array, para::Para; ω=0.7, tol=1e-7, max_iter=1000, verbose=true, 
                                 print_skip=25)
     # Set up loop 
-    @unpack  α, β, δ, χ, ψ, ε, σ, Z, f_E = para
+    @unpack  β, δ, χ, ψ, ε, σ, Z, f_E = para
     @unpack P, NN, NS, N_grid, A = para
 
     ss = steady_state(para)
@@ -249,7 +249,7 @@ end
 
 function simulate_series(C_mat::Array, para::Para; burn_in=200, capT=10_000)
 
-    @unpack  α, β, δ, χ, ψ, ε, σ, Z, f_E = para
+    @unpack  β, δ, χ, ψ, ε, σ, Z, f_E = para
     @unpack P, mc, NN, NS, N_grid, A = para
 
     C_pol = interpolating_function(C_mat, para)
@@ -277,9 +277,10 @@ function simulate_series(C_mat::Array, para::Para; burn_in=200, capT=10_000)
     I = @. ν*N_E
     Y = @. C + I
     lab_prod = @. Y/L
+    L_E = L - L_C
 
     Simulation = (ρ=ρ, C=C, N=N, Y=Y, lab_prod=lab_prod, w=w, 
-    L_C=L_C, L=L, ν=ν, d=d, N_E=N_E, I=I, η_x=log.(z_series), z_indices=z_indices)
+    L_C=L_C, L_E=L_E, L=L, ν=ν, d=d, N_E=N_E, I=I, η_x=log.(z_series), z_indices=z_indices)
     return Simulation
 end
 
@@ -290,11 +291,11 @@ Calculate impulse response to productivity shock
 """
 function impulse_response(C_mat::Array, para, N_init; irf_length=40, scale=1.0, perc=false)
 
-    @unpack  α, β, δ, χ, ψ, ε, σ, Z, f_E = para
+    @unpack  β, δ, χ, ψ, ε, σ, Z, f_E = para
     @unpack P, mc, NN, NS, N_grid, A = para
     @unpack ρ_x, σ_x = para
 
-    # 3-dimensional interpolation (AR(1) shocks, so productivity can go off grid)
+    # 2-dimensional interpolation (AR(1) shocks, so productivity can go off grid)
     
     #C_fun = LinearInterpolation((N_grid, A), C_mat)
     C_fun = Spline2D(N_grid, A, C_mat)
@@ -329,8 +330,10 @@ function impulse_response(C_mat::Array, para, N_init; irf_length=40, scale=1.0, 
         I = @. ν*N_E
         Y = @. C + I
         lab_prod = @. Y/L
+        L_E = L - L_C
 
-        out =   [N C I ρ L_C w L ν d N_E Y lab_prod]
+
+        out =   [N C I ρ L_C L_E w L ν d N_E Y lab_prod]
         return out
     end
 
@@ -341,9 +344,9 @@ function impulse_response(C_mat::Array, para, N_init; irf_length=40, scale=1.0, 
     @. irf_res .= 100*log(out_imp/out_bas)
     #out = [log.(x./mean(getfield(simul, field))) for (x, field) in
     #zip([c, k[1:(end-1)], l, i, w, R, y, lab_prod], [:c, :k, :l, :i, :w, :R, :y, :lab_prod])]
-    N, C, I, ρ, L_C, w, L, ν, d, N_E, Y, lab_prod = columns(irf_res) 
+    N, C, I, ρ, L_C, L_E, w, L, ν, d, N_E, Y, lab_prod = columns(irf_res) 
 
-    irf = (N=N, C=C, I=I, ρ=ρ, L_C=L_C, w=w, L=L, ν=ν, d=d, N_E=N_E, Y=Y, lab_prod=lab_prod,  η_x=100*log.(z))
+    irf = (N=N, C=C, I=I, ρ=ρ, L_C=L_C, L_E=L_E, w=w, L=L, ν=ν, d=d, N_E=N_E, Y=Y, lab_prod=lab_prod,  η_x=100*log.(z))
     return irf
 end
 
@@ -368,60 +371,75 @@ end
 
 function simulation_plot(sim)
     " Simulated data"
-    fig, ax = subplots(1, 3, figsize=(20, 5))
+    fig, ax = subplots(2, 2, figsize=(12, 12))
     t = 250:1000
-    ax[1].plot(t, sim.C[t], label="C")
-    ax[1].plot(t, sim.I[t], label="I")
-    ax[1].plot(t, sim.Y[t], label="Y")
-    ax[1].plot(t, sim.L[t], label="L")
-    ax[1].set_title("Output measures and labor supply")
-    ax[1].set_ylabel("%Δ")
-    ax[1].legend()
+    ax[1,1].plot(t, sim.C[t], label="C")
+    ax[1,1].plot(t, sim.I[t], label="I")
+    ax[1,1].plot(t, sim.Y[t], label="Y")
+    ax[1,1].plot(t, sim.L[t], label="L")
+    ax[1,1].set_title("Output measures and labor supply")
+    ax[1,1].set_ylabel("%Δ")
+    ax[1,1].legend()
 
-    ax[2].plot(t, sim.w[t], label="w")
-    ax[2].plot(t, sim.ν[t], label="r_K")
-    ax[2].set_title("Wage and value of firm")
-    ax[1].set_ylabel("%Δ")
-    ax[2].legend()
+    ax[1,2].plot(t, sim.w[t], label="w")
+    ax[1,2].plot(t, sim.ν[t], label="r_K")
+    ax[1,2].set_title("Wage and value of firm")
+    ax[1,2].set_ylabel("%Δ")
+    ax[1,2].legend()
 
-    ax[3].plot(t, sim.η_x[t], label="x")
-    ax[3].plot(t, sim.lab_prod[t], label="labor productivity")
-    ax[3].plot(t, sim.N[t], label="Capital")
-    ax[3].set_title("Productivity and number of firms")
-    ax[1].set_ylabel("%Δ")
-    ax[3].legend()
+    ax[2,1].plot(t, sim.L_C[t], label="L_C")
+    ax[2,1].plot(t, sim.L_E[t], label="L_E")
+    ax[2,1].plot(t, sim.L[t], label="L")
+    ax[2,1].set_title("Labor in each sector")
+    ax[2,1].set_ylabel("%Δ")
+    ax[2,1].legend()
+
+    ax[2,2].plot(t, sim.η_x[t], label="x")
+    ax[2,2].plot(t, sim.lab_prod[t], label="labor productivity")
+    ax[2,2].plot(t, sim.N[t], label="Capital")
+    ax[2,2].set_title("Productivity and number of firms")
+    ax[2,2].set_ylabel("%Δ")
+    ax[2,2].legend()
     plt.tight_layout()
     display(fig)
     PyPlot.savefig("simulations.pdf")
 end
 
 function impulse_response_plot(irf; fig_title="BGM_irf.pdf")
-    fig, ax = subplots(1, 3, figsize=(20, 5))
-    ax[1].plot(irf.C, label="C")
+    fig, ax = subplots(2, 2, figsize=(12, 8))
+    ax[1,1].plot(irf.C, label="C")
     #ax[1].plot(irf.I, label="I")
-    ax[1].plot(irf.N_E, label="N_E")
-    ax[1].plot(irf.Y, label="Y")
-    ax[1].plot(irf.L, label="L")
-    ax[1].set_title("Consumption, entry, output, and labor supply")
-    ax[1].set_ylabel("%Δ")
-    ax[1].grid()
-    ax[1].legend()
+    ax[1,1].plot(irf.N_E, label="N_E")
+    ax[1,1].plot(irf.Y, label="Y")
+    ax[1,1].plot(irf.L, label="L")
+    ax[1,1].set_title("Consumption, entry, output, and labor supply")
+    ax[1,1].set_ylabel("%Δ")
+    ax[1,1].grid()
+    ax[1,1].legend()
 
-    ax[2].plot(irf.w, label="w")
-    ax[2].plot(irf.ν, label="ν")
-    ax[2].set_title("Wage and firm value")
-    ax[2].set_ylabel("%Δ")
-    ax[2].grid()
-    ax[2].legend()
+    ax[1,2].plot(irf.w, label="w")
+    ax[1,2].plot(irf.ν, label="ν")
+    ax[1,2].set_title("Wage and firm value")
+    ax[1,2].set_ylabel("%Δ")
+    ax[1,2].grid()
+    ax[1,2].legend()
 
-    ax[3].plot(irf.η_x, label="x")
-    ax[3].plot(irf.lab_prod, label="Labor productivity")
-    ax[3].plot(irf.N, label="Number of firms")
-    ax[3].set_title("Total factor and labor productivity and number of firms")
-    ax[3].legend()
-    ax[3].set_ylabel("%Δ")
-    ax[3].grid()
-    ax[3].legend()
+    ax[2,1].plot(irf.L_C, label="L_C")
+    ax[2,1].plot(irf.L_E, label="L_E")
+    ax[2,1].plot(irf.L, label="L")
+    ax[2,1].set_title("Labor composition")
+    ax[2,1].legend()
+    ax[2,1].set_ylabel("%Δ")
+    ax[2,1].grid()
+
+    ax[2,2].plot(irf.η_x, label="x")
+    ax[2,2].plot(irf.lab_prod, label="Labor productivity")
+    ax[2,2].plot(irf.N, label="Number of firms")
+    ax[2,2].set_title("Total factor and labor productivity and number of firms")
+    ax[2,2].legend()
+    ax[2,2].set_ylabel("%Δ")
+    ax[2,2].grid()
+  
     plt.tight_layout()
     display(fig)
     PyPlot.savefig(fig_title)
