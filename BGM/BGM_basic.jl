@@ -331,9 +331,9 @@ function impulse_response(C_mat::Array, para, N_init; irf_length=40, scale=1.0, 
         Y = @. C + I
         lab_prod = @. Y/L
         L_E = L - L_C
+        lab_share = @. w*L/Y
 
-
-        out =   [N C I ρ L_C L_E w L ν d N_E Y lab_prod]
+        out =   [N C I ρ L_C L_E w L ν d N_E Y lab_prod lab_share]
         return out
     end
 
@@ -344,9 +344,10 @@ function impulse_response(C_mat::Array, para, N_init; irf_length=40, scale=1.0, 
     @. irf_res .= 100*log(out_imp/out_bas)
     #out = [log.(x./mean(getfield(simul, field))) for (x, field) in
     #zip([c, k[1:(end-1)], l, i, w, R, y, lab_prod], [:c, :k, :l, :i, :w, :R, :y, :lab_prod])]
-    N, C, I, ρ, L_C, L_E, w, L, ν, d, N_E, Y, lab_prod = columns(irf_res) 
+    N, C, I, ρ, L_C, L_E, w, L, ν, d, N_E, Y, lab_prod, lab_share = columns(irf_res) 
 
-    irf = (N=N, C=C, I=I, ρ=ρ, L_C=L_C, L_E=L_E, w=w, L=L, ν=ν, d=d, N_E=N_E, Y=Y, lab_prod=lab_prod,  η_x=100*log.(z))
+    irf = (N=N, C=C, I=I, ρ=ρ, L_C=L_C, L_E=L_E, w=w, L=L, ν=ν, d=d, N_E=N_E, Y=Y, lab_prod=lab_prod,
+            lab_share=lab_share,  η_x=100*log.(z))
     return irf
 end
 
@@ -434,6 +435,7 @@ function impulse_response_plot(irf; fig_title="BGM_irf.pdf")
 
     ax[2,2].plot(irf.η_x, label="x")
     ax[2,2].plot(irf.lab_prod, label="Labor productivity")
+    ax[2,2].plot(irf.lab_share, label="Labor share")
     ax[2,2].plot(irf.N, label="Number of firms")
     ax[2,2].set_title("Total factor and labor productivity and number of firms")
     ax[2,2].legend()
