@@ -4,7 +4,7 @@ using LinearAlgebra, LinearInterpolations
 using BenchmarkTools
 using DataFrames
 using Printf
-
+cd(@__DIR__)
 include("Aiyagari_functions.jl")
 
 
@@ -21,7 +21,7 @@ ax.plot(a[ind], asset_probs[ind], label="asset distribution")
 ax.fill_between(a[ind], asset_probs[ind], 0.0, alpha=0.2)
 ax.legend()
 tight_layout()
-plt.savefig("asset_distribution")
+plt.savefig("asset_distribution.pdf")
 display(fig)
 
 
