@@ -43,7 +43,7 @@ display(fig)
 #CV_c_vals, K_vals, r_vals = main_general()
 rho_vals = [0.0, 0.3, 0.6, 0.9]
 para = Para(b=0.0, NS=7)
-CV_c_vals, K_vals, r_vals, t = generate_table(rho_vals, 0.4, para)
+CV_c_vals, K_vals, r_vals, t = generate_stats_table(rho_vals, 0.4, para)
 print(t)
 
 

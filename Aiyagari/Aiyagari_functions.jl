@@ -1,7 +1,7 @@
 
 using PyPlot
 using Parameters, CSV, Random, QuantEcon
-using LinearAlgebra, QuadGK, LinearInterpolations
+using LinearAlgebra,  LinearInterpolations
 using BenchmarkTools
 using DataFrames
 using Printf
@@ -124,8 +124,8 @@ function time_iter(a_prime, para; omega=0.7)
     c = zero(a_prime)
     a_prime_new = zero(a_prime)
     # Current state a, z
-    for (i, a_i) in enumerate(a)
-        for z in 1:NS
+    for z in 1:NS
+        for (i, a_i) in enumerate(a)
             for z_hat in 1:NS
                 a1 = a_prime_fun(a_i, z) #a'
                 a2 = a_prime_fun(a1, z_hat) #a''
@@ -217,8 +217,8 @@ function update_dist(phi, ab_pol, wei, para)
     # update distribution
     @unpack P, NA, NS = para
     phi_new = zero(phi)
-    for ia in 1:NA
-        for is in 1:NS
+    for is in 1:NS
+        for ia in 1:NA
             # lower gridpoint on savings
             a_p = ab_pol[ia, is]
             for is_p in 1:NS
@@ -297,6 +297,7 @@ function general_equilibrium(para; T=100_000)
     """
     @unpack a, grid_max, b, δ, β, NA, NS = para
     r_max = (1-β)/β
+    # initial guess of savings
     a_pol = 0.8.*repeat(a, 1, NS)
     c_pol = similar(a_pol)
     # Generate fixed Markov chain
@@ -331,14 +332,14 @@ function general_equilibrium(para; T=100_000)
         asset_probs, C, K_supply, CV_C, CV_K = sum_stats(phi, a_pol, c_pol, para_new)
 
         # Inverse demand at capital supplied by HH
-        r1 = rd(K_supply, para_new)
+        r1 = rd(K_supply, para_new) #interest rate at which firms demand k supplied by HH
         err = r1 - r 
         if err < 0 # lower rate
             maxrate = r 
-        else
+        else # raise rate
             minrate = r
         end
-        @printf("\n %.5f, %.5f, %.5f", K_supply, r, r1)
+        @printf("\n K_supply = %.5f, r = %.5f, r_1 = %.5f", K_supply, r, r1)
         # Difference between supply and demand
     end
     return r, w, phi, asset_probs, C, K_supply, CV_C, CV_K, a_pol, c_pol, para
@@ -448,7 +449,7 @@ end
     generate_table(ρ_vals, σ, para)
 generate table of statistics for different values of σ and ρ
 """
-function generate_table(rho_vals, σ, para)
+function generate_stats_table(rho_vals, σ, para)
     r_vals = similar(rho_vals)
     K_vals = similar(rho_vals)
     CV_C_vals = similar(rho_vals)
