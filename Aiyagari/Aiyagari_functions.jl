@@ -252,7 +252,7 @@ end
     sum_stats(phi, a_pol, c_pol, para)
 Compute summary statistics from asset distribution
 """
-function sum_stats(phi, a_pol, c_pol, para)
+function sum_stats(phi, c_pol, para)
     @unpack a, NA, NS = para
 
     # asset distribution
@@ -329,7 +329,7 @@ function general_equilibrium(para; T=100_000)
         wei = (a_pol- a[ab_pol]) ./ (a[(ab_pol .+1)] - a[ab_pol])
       
         invariant_dist!(phi, ab_pol, wei, para_new)
-        asset_probs, C, K_supply, CV_C, CV_K = sum_stats(phi, a_pol, c_pol, para_new)
+        asset_probs, C, K_supply, CV_C, CV_K = sum_stats(phi, c_pol, para_new)
 
         # Inverse demand at capital supplied by HH
         r1 = rd(K_supply, para_new) #interest rate at which firms demand k supplied by HH

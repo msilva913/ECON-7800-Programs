@@ -12,9 +12,15 @@ include("Aiyagari_functions.jl")
 para = Para(b=0.0, NS=7)
 @unpack b, grid_max, NA, NS, σ, ρ, R, β, a, P = para
 
+#Cluster points near constraint
+@show a
+fig, ax = plt.subplots()
+ax.hist(a)
+display(fig)
+
 r, w, phi, asset_probs, C, K_supply, CV_C, CV_K, a_pol, c_pol, para =  general_equilibrium(para)
 
-ind = a.<30.0
+ind = a.<50.0
 " Plot histogram "
 fig, ax = subplots(ncols=1, figsize=(6, 6))
 ax.plot(a[ind], asset_probs[ind], label="asset distribution")
@@ -24,6 +30,8 @@ tight_layout()
 plt.savefig("asset_distribution.pdf")
 display(fig)
 
+# Mass at constraint
+@printf "%0.2f%% agents constrained  " sum(100*asset_probs[a.<=b])
 
 # Policies
 fig, ax = subplots(ncols=2, figsize=(12, 6))
