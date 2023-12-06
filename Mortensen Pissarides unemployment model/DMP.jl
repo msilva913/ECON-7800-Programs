@@ -5,11 +5,10 @@ using BenchmarkTools
 using LaTeXStrings
 using Parameters, CSV, Random, QuantEcon
 using Distributions
-using LinearAlgebra, Roots, Optim, LinearInterpolations, Interpolations
-using Dierckx
-using Printf, PrettyPrint
+using LinearAlgebra, Roots, LinearInterpolations, Interpolations, Dierckx
+using Printf
 using DataFrames
-include("time_series_fun.jl")
+#include("time_series_fun.jl")
 
 #job finding probability
 function jf(θ, η_L)
@@ -323,18 +322,18 @@ fields = [:x, :u, :θ, :Y, :M, :labor_share]
 out = reduce(hcat, [100 .*log.(getfield(simul, x)./mean(getfield(simul,x))) for x in fields])
 
 # Create time series object
-df = time_series_object(out, fields);
+# df = time_series_object(out, fields);
 
-# convert to quarterly
-df_q = collapse(df, eoq(df.index), fun=mean);
-#cycle = mapcols(col -> hamilton_filter(col, h=8), DataFrames.DataFrame(df_q.values,:auto))
-cycle = mapcols(col -> hp_filter(col, 10^5)[1], DataFrames.DataFrame(df_q.values,:auto))
+# # convert to quarterly
+# df_q = collapse(df, eoq(df.index), fun=mean);
+# #cycle = mapcols(col -> hamilton_filter(col, h=8), DataFrames.DataFrame(df_q.values,:auto))
+# cycle = mapcols(col -> hp_filter(col, 10^5)[1], DataFrames.DataFrame(df_q.values,:auto))
 
-DataFrames.rename!(cycle, fields)
+# DataFrames.rename!(cycle, fields)
 
-#Extract moments
-mom_mod = moments(cycle, :x, fields, var_names=fields)
-pprint(mom_mod)
+# #Extract moments
+# mom_mod = moments(cycle, :x, fields, var_names=fields)
+# pprint(mom_mod)
 
 
 

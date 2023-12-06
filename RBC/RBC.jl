@@ -454,7 +454,96 @@ para_np = Para(ρ_x = 0.0)
 l = ones(NK, NS)*steady.l
 l_mat, l_pol, c_pol, y_pol, inv_pol, w_pol, R_pol = solve_model_time_iter(l, para_np, verbose=true)
 
-irf_np = impulse_response(l_mat, para_np, k_1, irf_length=10)
-impulse_response_plot(irf_np, fig_title="rbc_irf_np.pdf")
+# irf_np = impulse_response(l_mat, para_np, k_1, irf_length=10)
+# impulse_response_plot(irf_np, fig_title="rbc_irf_np.pdf")
 
 
+function capital_destruction(l_mat::Matrix{Float64}, para, k_init; irf_length=40, Δ=0.2)
+
+    # Destruction shock to capital is completely unanticipated--not incorporated into agents' policies
+    @unpack ρ_x, σ_x, P, mc, A, α, θ, δ, k_grid = para
+
+    # Bivariate interpolation (AR(1) shocks, so productivity can go off grid)
+    L = Spline2D(k_grid, A, l_mat)
+
+    # assume TFP at steady-state throughout
+    z_series = ones(irf_length)
+
+    # One-time shock to capital
+    k_bas = k_init
+    k_shock = k_init*(1-Δ)
+
+    function impulse(k_init)
+        # trajectory given initial capital stock (fixed technology process)
+        k = zeros(irf_length+1)
+        k[1] = k_init
+        l = zeros(irf_length)
+        c = zeros(irf_length)
+        y = zeros(irf_length)
+
+
+        for t in 1:irf_length
+            # labor
+            l[t] = L(k[t], z_series[t])
+            y[t] = z_series[t]*k[t]^α*l[t]^(1-α)
+            c[t] = (1-l[t])/θ*(1-α)*y[t]/l[t]
+            k[t+1] = (1-δ)*k[t] + y[t] - c[t]
+        end
+
+        #k = k[1:(end-1)]
+        pop!(k)
+        i = y - c
+        w = (1-α).*y./l
+        R = α.*y./k
+        lab_prod = y./l
+        out = [c k l i w R y lab_prod]
+        return out
+    end
+
+    out_imp = impulse(k_shock) # series under shock to capital
+    out_bas = impulse(k_bas) # baseline series
+
+    irf_res = similar(out_imp)
+    @. irf_res .= 100*(out_imp-out_bas)/out_bas
+    #out = [log.(x./mean(getfield(simul, field))) for (x, field) in
+    #zip([c, k[1:(end-1)], l, i, w, R, y, lab_prod], [:c, :k, :l, :i, :w, :R, :y, :lab_prod])]
+    c, k, l, i, w, R, y, lab_prod = columns(irf_res) 
+
+    irf = (l=l, y=y, c=c, k=k, i=i, w=w, R=R,
+                 lab_prod=lab_prod)
+    return irf
+end
+
+function capital_destruction_plot(irf; fig_title="rbc_irf_k_shock.pdf")
+    fig, ax = subplots(1, 3, figsize=(20, 5))
+    ax[1].plot(irf.c, label="c")
+    ax[1].plot(irf.i, label="i")
+    ax[1].plot(irf.l, label="l")
+    ax[1].plot(irf.y, label="y")
+    ax[1].set_title("Consumption, investment, output, and labor supply")
+    ax[1].set_ylabel("%Δ")
+    ax[1].grid()
+    ax[1].legend()
+
+    ax[2].plot(irf.w, label="w")
+    ax[2].plot(irf.R, label="R")
+    ax[2].set_title("Wage and rental rate of capital")
+    ax[2].set_ylabel("%Δ")
+    ax[2].grid()
+    ax[2].legend()
+
+    ax[3].plot(irf.lab_prod, label="Labor productivity")
+    ax[3].plot(irf.k, label="Capital stock")
+    ax[3].set_title("Total factor and labor productivity and capital stock")
+    ax[3].legend()
+    ax[3].set_ylabel("%Δ")
+    ax[3].grid()
+    ax[3].legend()
+    plt.tight_layout()
+    display(fig)
+    PyPlot.savefig(fig_title)
+end
+
+irf_k_shock = capital_destruction(l_mat, para, steady.k, irf_length=40, Δ=0.2)
+
+capital_destruction_plot(irf_k_shock)
