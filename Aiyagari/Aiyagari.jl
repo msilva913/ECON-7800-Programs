@@ -208,7 +208,7 @@ pb2 = Plots.plot(b_vals, K_b, marker=:circle, color=C_ACC,  lw=2, legend=false,
 pb3 = Plots.plot(b_vals, g_b, marker=:circle, color=C_MED,  lw=2, legend=false,
            xlabel="Borrowing limit b", ylabel="Gini (wealth)",
            title="Wealth inequality")
-fig6 = Plots.plot(pb1, pb2, pb3, layout=(1,3), size=(1050,600),
+fig6 = Plots.plot(pb1, pb2, pb3, layout=(1, 3), size=(600, 400),
             plot_title="Effect of borrowing limit (social insurance proxy)")
 Plots.savefig(fig6, "fig6_borrowing_limit.pdf")
 Plots.display(fig6)
