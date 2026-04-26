@@ -1,16 +1,13 @@
 # ============================================================
 # Aiyagari_functions.jl
-# Improved implementation of Aiyagari (1994)
-# Backend: Plots.jl (pure Julia, no Python bridge)
+# Core functions for Aiyagari (1994) incomplete-markets model.
+# Backend-agnostic: plotting handled in main script.
 # ============================================================
 
-using Plots
 using Parameters, CSV, Random, QuantEcon
 using LinearAlgebra, LinearInterpolations
 using DataFrames
 using Printf
-
-gr()   # GR backend — fast, supports PDF/PNG output
 
 # ── Grid ──────────────────────────────────────────────────────────────────────
 
@@ -40,11 +37,11 @@ end
 @with_kw mutable struct Para{T1,T2,T3}
     β::Float64 = 0.96
     γ::Float64 = 2.0
-    ρ::Float64 = 0.6
-    σ::Float64 = 0.16^0.5          # unconditional std of log-income ≈ 0.4
-    NS::Int64  = 7
+    ρ::Float64 = 0.9               # persistent income component (Flodén-Lindé 2001)
+    σ::Float64 = 0.2               # conditional std of log-income (Flodén-Lindé 2001)
+    NS::Int64  = 11                 # number of income states (Rouwenhorst approximation)
     b::Float64 = 0.0               # borrowing limit (a' ≥ -b)
-    grid_max::Float64 = 100.0
+    grid_max::Float64 = 50.0
     NA::Int64  = 200
     A::Float64 = 1.0
     N::Float64 = 1.0
@@ -60,8 +57,9 @@ end
     P::T2  = mc.p
     y::Vector{Float64} = exp.(mc.state_values)
     @assert R * β < 1 "Transversality violated: β*(1+r) ≥ 1"
-    a::T3 = grid_cons_grow(NA, -b, grid_max, 0.02)
+    a::T3 = grid_cons_grow(NA, -b, grid_max, 0.10)
 end
+
 
 """
     update_params!(para)
@@ -73,11 +71,11 @@ function update_params!(para)
     para.u           = c -> c^(1-γ)/(1-γ)
     para.u_prime     = c -> c^(-γ)
     para.u_prime_inv = c -> c^(-1/γ)
-    para.mc          = rouwenhorst(NS, ρ, σ*(1-ρ^2)^0.5, 0.0)
+    para.mc = rouwenhorst(NS, ρ, σ*(1-ρ^2)^0.5, 0.0)
     para.P           = para.mc.p
     para.y           = exp.(para.mc.state_values)
     @assert para.R * β < 1 "Transversality violated"
-    para.a           = grid_cons_grow(NA, -b, grid_max, 0.02)
+    para.a           = grid_cons_grow(NA, -b, grid_max, 0.10)
     return nothing
 end
 
@@ -143,7 +141,7 @@ function egm_step(c_on_grid, para)
             end
         end
     end
-    a_prime_new = clamp.(a_prime_new, -b, maximum(a))
+    a_prime_new = clamp.(a_prime_new, -b, a[end-1])  # a[end] would cause OOB in histc
     return a_prime_new, c_new
 end
 
@@ -238,14 +236,21 @@ end
 
 """
     compute_gini(values, weights)
-Gini coefficient in [0,1] from sorted values with probability weights.
+Gini coefficient in [0,1] from values with probability weights.
+Sorts ascending, normalises weights, computes area under Lorenz curve.
+Note: standard formula assumes non-negative values. When borrowing
+is allowed (b>0) some asset values may be negative — the returned
+Gini is then the extended Gini (can exceed 1) and should be
+interpreted with care.
 """
 function compute_gini(values, weights)
     idx    = sortperm(values)
     v      = values[idx]
     w      = weights[idx] ./ sum(weights)
+    wv_sum = dot(w, v)
+    wv_sum ≈ 0.0 && return NaN   # guard: all values zero (e.g. b=0, everyone at constraint)
     cum_w  = cumsum(w)
-    cum_wv = cumsum(w .* v) ./ dot(w, v)
+    cum_wv = cumsum(w .* v) ./ wv_sum
     area   = sum(0.5 .* diff(cum_w) .* (cum_wv[1:end-1] .+ cum_wv[2:end]))
     return 1.0 - 2.0 * area
 end
@@ -265,7 +270,7 @@ end
 
 """
     compute_wealth_shares(a, asset_probs)
-Share of total wealth held by top 1%, top 10%, bottom 50%.
+Share of total wealth held by top 1%, top 10%, top 50%.
 """
 function compute_wealth_shares(a, asset_probs)
     probs = asset_probs ./ sum(asset_probs)
@@ -276,16 +281,66 @@ function compute_wealth_shares(a, asset_probs)
     cum_pop = cumsum(p_s)
     s_top1  = dot(a_s[cum_pop .>= 0.99], p_s[cum_pop .>= 0.99]) / total
     s_top10 = dot(a_s[cum_pop .>= 0.90], p_s[cum_pop .>= 0.90]) / total
-    s_bot50 = dot(a_s[cum_pop .<= 0.50], p_s[cum_pop .<= 0.50]) / total
-    return s_top1, s_top10, s_bot50
+    s_top50 = dot(a_s[cum_pop .>= 0.50], p_s[cum_pop .>= 0.50]) / total
+    return s_top1, s_top10, s_top50
 end
 
 """
-    welfare_cost_business_cycles(σ_c, γ)
-Lucas (1987) welfare cost: fraction of consumption to eliminate volatility σ_c.
-λ ≈ 0.5 * γ * σ_c²  (first-order approximation).
+    compute_value_function(c_pol, para; tol=1e-8, max_iter=10000)
+Compute V(a,z) by iterating V = u(c) + β E[V'] given converged c_pol.
 """
-welfare_cost_business_cycles(σ_c, γ) = 0.5 * γ * σ_c^2
+function compute_value_function(c_pol, a_pol, para; tol=1e-8, max_iter=10000)
+    @unpack β, u, P, NA, NS, a = para
+    V     = u.(c_pol) ./ (1 - β)   # initialise at myopic value
+    V_new = similar(V)
+    for _ in 1:max_iter
+        for z in 1:NS, i in 1:NA
+            EV = 0.0
+            for z_p in 1:NS
+                # interpolate V at a_pol[i,z] for each z_p
+                EV += P[z, z_p] * Interpolate(a, V[:, z_p],
+                                              extrapolate=:reflect)(a_pol[i,z])
+            end
+            V_new[i,z] = u(c_pol[i,z]) + β * EV
+        end
+        maximum(abs.(V_new .- V)) < tol && break
+        V .= V_new
+    end
+    return V
+end
+
+"""
+    welfare_cost_exact(V_im, C_star, phi, para)
+Exact consumption-equivalent welfare cost λ(a,z) such that
+    V_IM(a,z) = u((1-λ)C*)/(1-β)
+For CRRA with γ≠1:
+    λ(a,z) = 1 - [-V_IM(a,z)*(1-β)*(γ-1)]^(1/(1-γ)) / C_star
+
+Returns λ_grid (NA×NS) and distribution-weighted aggregates.
+"""
+function welfare_cost_exact(V_im, C_star, phi, asset_probs, para)
+    @unpack γ, β, NA, NS = para
+
+    λ_grid = zeros(NA, NS)
+    for z in 1:NS, i in 1:NA
+        # For CRRA γ > 1: V < 0, so (1-γ)*(1-β)*V_im > 0
+        ratio = (1 - γ) * (1 - β) * V_im[i, z]
+        ratio <= 0 && continue          # ← was ||, must be &&
+        λ_grid[i, z] = 1.0 - ratio^(1/(1-γ)) / C_star
+    end
+
+    # Aggregate welfare cost: E_Φ[λ]
+    λ_agg = sum(λ_grid .* phi)
+
+    # Bottom 10% of wealth distribution (by marginal asset probabilities)
+    cum_pop   = cumsum(asset_probs ./ sum(asset_probs))
+    bot10_mask = cum_pop .<= 0.10
+    phi_bot   = phi[bot10_mask, :]
+    denom     = sum(phi_bot)
+    λ_bot10   = denom > 0 ? sum(λ_grid[bot10_mask, :] .* phi_bot) / denom : NaN
+
+    return λ_grid, λ_agg, λ_bot10
+end
 
 # ── General equilibrium ───────────────────────────────────────────────────────
 
@@ -304,11 +359,14 @@ function general_equilibrium(para; tol_r=1e-6, use_egm=true, verbose=true)
     phi         = fill(1.0 / (NA * NS), NA, NS)
     asset_probs = zeros(NA)
     C = K_supply = CV_C = CV_K = r = w = 0.0
+    p2 = deepcopy(para)   # initialize before loop; overwritten each iteration
 
     while abs(err) > tol_r
         r  = 0.5 * (r_min + r_max)
         w  = r_to_w(r, para)
-        p2 = deepcopy(para); p2.r = r; p2.w = w
+        p2.r = r
+        p2.w = w
+        p2.R = 1 + r
         update_params!(p2)
 
         if use_egm
@@ -317,6 +375,7 @@ function general_equilibrium(para; tol_r=1e-6, use_egm=true, verbose=true)
             a_pol, c_pol = solve_model_time_iter(repeat(p2.a,1,NS), p2;
                                                   verbose=false, omega=0.5)
         end
+        c_init = c_pol   # warm-start next bisection iteration
 
         a_pol  = clamp.(a_pol, -b + 1e-10, grid_max - 1e-10)
         ab_pol = histc(a_pol, p2.a)
@@ -330,7 +389,7 @@ function general_equilibrium(para; tol_r=1e-6, use_egm=true, verbose=true)
         verbose && @printf("  K=%.4f  r=%.5f  r_firm=%.5f  err=%.2e\n",
                             K_supply, r, r1, err)
     end
-    return r, w, phi, asset_probs, C, K_supply, CV_C, CV_K, a_pol, c_pol, para
+    return r, w, phi, asset_probs, C, K_supply, CV_C, CV_K, a_pol, c_pol, p2  # p2 has correct r,w
 end
 
 # ── Table generator ───────────────────────────────────────────────────────────
@@ -343,26 +402,32 @@ function generate_stats_table(rho_vals, σ_val, para; use_egm=true)
     para = deepcopy(para); para.σ = σ_val; update_params!(para)
     rho_star = (1 - para.β) / para.β
 
-    r_v = similar(rho_vals); K_v = similar(rho_vals)
-    CVC = similar(rho_vals); CVK = similar(rho_vals)
-    G_v = similar(rho_vals); Liq = similar(rho_vals)
+    r_v   = similar(rho_vals); K_v   = similar(rho_vals)
+    CVC   = similar(rho_vals); CVK   = similar(rho_vals)
+    G_v   = similar(rho_vals); Liq   = similar(rho_vals)
+    MPC_v = similar(rho_vals); PCT_v = similar(rho_vals)
 
     for (i, ρ) in enumerate(rho_vals)
         para.ρ = ρ; update_params!(para)
-        r, _, phi, ap, _, K, CV_C, CV_K, _, c_pol, _ =
-            general_equilibrium(para; use_egm, verbose=false)
-        r_v[i] = r; K_v[i] = K; CVC[i] = CV_C; CVK[i] = CV_K
-        G_v[i] = compute_gini(para.a, ap)
-        Liq[i] = (rho_star - r) * 100
+        r, _, phi, asset_probs_i, _, K, CV_C, CV_K, _, c_pol, p_out =
+            general_equilibrium(para; use_egm, verbose=false, tol_r=1e-6)
+        r_v[i]   = r; K_v[i] = K; CVC[i] = CV_C; CVK[i] = CV_K
+        G_v[i]   = compute_gini(p_out.a, asset_probs_i)   # marginal asset distribution
+        Liq[i]   = (rho_star - r) * 100
+        mpc      = compute_mpc(c_pol, p_out)
+        MPC_v[i] = sum(mpc .* phi)
+        pct_mask = p_out.a .<= p_out.b
+        PCT_v[i] = sum(asset_probs_i[pct_mask]) * 100
     end
 
     t = DataFrame(rho=rho_vals, r_star_pct=r_v.*100, K_eq=K_v,
-                  CV_c=CVC, CV_w=CVK, Gini_wealth=G_v,
-                  liquidity_premium_pp=Liq)
+                  liquidity_premium_pp=Liq, agg_MPC=MPC_v,
+                  Gini_wealth=G_v, pct_constrained=PCT_v)
     return CVC, K_v, r_v, t
 end
 
-# ── Comparative statics helpers (Plots.jl) ────────────────────────────────────
+# ── Comparative statics helpers ───────────────────────────────────────────────
+# Note: these functions use Plots.jl — requires `using Plots; gr()` in main script.
 
 """
     comp_statics_plot(field, vals, para; z_idx=1)
@@ -391,7 +456,7 @@ function comp_statics_GE_plot(field, vals; use_egm=true)
     r_v = similar(vals); K_v = similar(vals); C_v = similar(vals)
     for (i, val) in enumerate(vals)
         par = Para(); setfield!(par, field, val); update_params!(par)
-        r, _, _, _, C, K, _ = general_equilibrium(par; use_egm, verbose=false)
+        r, _, _, _, C, K, _, _, _, _, _ = general_equilibrium(par; use_egm, verbose=false)
         r_v[i], K_v[i], C_v[i] = r, K, C
     end
     p1 = plot(vals, r_v.*100, xlabel="$field", ylabel="r* (%)",  legend=false, lw=2)
