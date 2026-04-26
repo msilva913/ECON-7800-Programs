@@ -192,13 +192,16 @@ function update_dist(phi, ab_pol, wei, para)
     return phi_new
 end
 
-function invariant_dist!(phi, ab_pol, wei, para; tol_dist=1e-10)
-    dif = 1.0
-    while dif > tol_dist
+function invariant_dist!(phi, ab_pol, wei, para; tol_dist=1e-8, max_iter=5000)
+    dif  = 1.0
+    iter = 0
+    while dif > tol_dist && iter < max_iter
+        iter   += 1
         phi_new = update_dist(phi, ab_pol, wei, para)
         dif     = maximum(abs.(phi_new .- phi))
         phi    .= phi_new ./ sum(phi_new)
     end
+    iter == max_iter && @warn "invariant_dist!: did not converge after $max_iter iterations (dif=$dif)"
 end
 
 # ── Summary statistics ────────────────────────────────────────────────────────
@@ -348,7 +351,7 @@ end
     general_equilibrium(para; tol_r, use_egm, verbose)
 Bisection on r: find r* where HH capital supply = firm capital demand.
 """
-function general_equilibrium(para; tol_r=1e-6, use_egm=true, verbose=true)
+function general_equilibrium(para; tol_r=1e-5, use_egm=true, verbose=true)
     @unpack β, δ, NA, NS, a, b, grid_max = para
     r_max = (1 - β) / β
     r_min = -δ
@@ -359,9 +362,12 @@ function general_equilibrium(para; tol_r=1e-6, use_egm=true, verbose=true)
     phi         = fill(1.0 / (NA * NS), NA, NS)
     asset_probs = zeros(NA)
     C = K_supply = CV_C = CV_K = r = w = 0.0
-    p2 = deepcopy(para)   # initialize before loop; overwritten each iteration
+    p2   = deepcopy(para)   # initialize before loop; overwritten each iteration
+    iter = 0
+    max_iter = 200
 
-    while abs(err) > tol_r
+    while abs(err) > tol_r && iter < max_iter
+        iter += 1
         r  = 0.5 * (r_min + r_max)
         w  = r_to_w(r, para)
         p2.r = r
@@ -389,6 +395,7 @@ function general_equilibrium(para; tol_r=1e-6, use_egm=true, verbose=true)
         verbose && @printf("  K=%.4f  r=%.5f  r_firm=%.5f  err=%.2e\n",
                             K_supply, r, r1, err)
     end
+    iter == max_iter && @warn "general_equilibrium: bisection did not converge after $max_iter iterations (err=$err)"
     return r, w, phi, asset_probs, C, K_supply, CV_C, CV_K, a_pol, c_pol, p2  # p2 has correct r,w
 end
 
@@ -410,7 +417,7 @@ function generate_stats_table(rho_vals, σ_val, para; use_egm=true)
     for (i, ρ) in enumerate(rho_vals)
         para.ρ = ρ; update_params!(para)
         r, _, phi, asset_probs_i, _, K, CV_C, CV_K, _, c_pol, p_out =
-            general_equilibrium(para; use_egm, verbose=false, tol_r=1e-6)
+            general_equilibrium(para; use_egm, verbose=false, tol_r=1e-5)
         r_v[i]   = r; K_v[i] = K; CVC[i] = CV_C; CVK[i] = CV_K
         G_v[i]   = compute_gini(p_out.a, asset_probs_i)   # marginal asset distribution
         Liq[i]   = (rho_star - r) * 100

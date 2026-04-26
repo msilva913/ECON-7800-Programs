@@ -209,9 +209,6 @@ Plots.display(fig5)
 #             Two panels: sigma=0.2 and sigma=0.4
 #             One AD benchmark column (sigma irrelevant for AD)
 # ============================================================
-para_test = Para(b=0.0, NS=11, ρ=0.0, σ=0.2)
-r, _, phi, ap, _, K, _, _, _, _, p_out = general_equilibrium(para_test)
-println(compute_gini(p_out.a, ap))
 
 println("\n=== Table: GE statistics (sigma = 0.2 and sigma = 0.4) ===")
 para_tab  = Para(b=0.0, NS=11)
