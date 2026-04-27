@@ -251,7 +251,7 @@ rows = [
     (raw"K^*",                   t02.K_eq,                t04.K_eq,                fmt2, ad.K),
     (raw"\text{Liq. prem. (pp)}",t02.liquidity_premium_pp,t04.liquidity_premium_pp,fmt2, ad.liq),
     (raw"\text{Agg. MPC}",       t02.agg_MPC,             t04.agg_MPC,             fmt3, ad.mpc),
-    (raw"\text{Gini (wealth)}",  t02.Gini_wealth,         t04.Gini_wealth,         fmt3, ad.gini),
+    #(raw"\text{Gini (wealth)}",  t02.Gini_wealth,         t04.Gini_wealth,         fmt3, ad.gini),
     (raw"\% \text{ at constr.}", t02.pct_constrained,     t04.pct_constrained,     fmt2, ad.pct),
 ]
 
@@ -263,7 +263,7 @@ end
 
 write(io, raw"""
 \bottomrule
-\multicolumn{10}{l}{\footnotesize AD = Arrow-Debreu. $\sigma_z$ irrelevant for AD: $r^*=\rho$, MPC$\approx 0$, Gini$=0$.}
+\multicolumn{10}{l}{\footnotesize AD = Arrow-Debreu. $\sigma_z$ irrelevant for AD: $r^*=\rho$, MPC$\approx r^*$.}
 \end{tabular}
 \end{center}
 """)
