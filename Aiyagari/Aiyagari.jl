@@ -26,6 +26,34 @@ C_MED  = "#1a9641"
 # ============================================================
 println("\n=== Solving baseline GE equilibrium ===")
 para = Para(b=0.0, NS=11)
+# ========================================
+y        = para.mc.state_values                     # 11 evenly-spaced log-z nodes
+NS       = para.NS                                  # 11
+σ_y      = para.σ                                   # unconditional std = 0.2
+Δy       = y[2] - y[1]                             # uniform grid spacing
+
+# Binomial(NS-1, 0.5) masses converted to density: divide by Δy
+bin_dens = [pdf(Binomial(NS - 1, 0.5), k) for k in 0:NS-1] ./ Δy
+
+# Normal density on fine grid
+y_fine   = range(y[1] - 2Δy, y[end] + 2Δy; length = 400)
+norm_dens = pdf.(Normal(0.0, σ_y), y_fine)
+
+bar(y, bin_dens;
+    label      = "Rouwenhorst — Binomial($(NS-1), 0.5) / Δy",
+    color      = :teal,
+    alpha      = 0.6,
+    bar_width  = Δy * 0.9,
+    xlabel     = "Log productivity  z",
+    ylabel     = "Density",
+    title      = "Stationary distribution: NS = $NS vs N(0, $(σ_y)²)")
+
+plot!(y_fine, norm_dens;
+    label     = "N(0, $(σ_y)²)",
+    lw        = 2.5,
+    color     = :firebrick,
+    linestyle = :dash)
+    
 r, w, phi, asset_probs, C, K, CV_C, CV_K, a_pol, c_pol, para =
     general_equilibrium(para; use_egm=true)
 
