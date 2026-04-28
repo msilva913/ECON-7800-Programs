@@ -39,20 +39,29 @@ bin_dens = [pdf(Binomial(NS - 1, 0.5), k) for k in 0:NS-1] ./ Δy
 y_fine   = range(y[1] - 2Δy, y[end] + 2Δy; length = 400)
 norm_dens = pdf.(Normal(0.0, σ_y), y_fine)
 
-bar(y, bin_dens;
+pc = Plots.bar(y, bin_dens;
     label      = "Rouwenhorst — Binomial($(NS-1), 0.5) / Δy",
     color      = :teal,
     alpha      = 0.6,
     bar_width  = Δy * 0.9,
     xlabel     = "Log productivity  z",
     ylabel     = "Density",
-    title      = "Stationary distribution: NS = $NS vs N(0, $(σ_y)²)")
+    legend    = :topright,
+    #title      = "Stationary distribution: NS = $NS vs N(0, $(σ_y)²)",
+    fontsize  = 8)
 
 plot!(y_fine, norm_dens;
     label     = "N(0, $(σ_y)²)",
     lw        = 2.5,
     color     = :firebrick,
     linestyle = :dash)
+
+fig0 = Plots.plot(pc, layout=(1,1), size=(500, 300), margin=1Plots.mm)
+Plots.savefig(fig0, "rouwenhorst_approximation_stationary.pdf")
+Plots.display(fig0)
+# ========================================
+# Solve for GE equilibrium: r, w, phi, C, K, CVs, policy functions, and output struct
+# ========================================
     
 r, w, phi, asset_probs, C, K, CV_C, CV_K, a_pol, c_pol, para =
     general_equilibrium(para; use_egm=true)
